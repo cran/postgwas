@@ -156,7 +156,7 @@ regionalplot(
   gwas.resultfiles = gwas.resultfiles
 )
 
-# this would save all downloaded data in buffer variables (given they do not yet exist)
+# this saves all downloaded data in buffer variables (given they do not yet exist)
 # repeated execution (with use.buffer = TRUE) will then use the buffer data
 regionalplot(
   snps = snps, 
@@ -178,16 +178,16 @@ postgwas.buffer.exons.regionalplot <- read.table(
 load(system.file("extdata", "postgwas.buffer.ld.regionalplot", package = "postgwas"))
 }
 
-# now use buffer data
-# also use custom SNP annotation text
-# LD is calculated from ped / map files 
+# now plot using buffer data
+# further, set custom SNP annotation text
+# LD is now calculated from ped / map files 
 # and stored in the buffer variable (postgwas.buffer.ld.regionalplot)
 pedmap.files <- system.file(
                   "extdata", 
                   c("example.map", "example.ped"), 
                   package = "postgwas"
                 )
-invisible(regionalplot(
+regionalplot(
   snps = snps, 
   gwas.resultfiles = gwas.resultfiles, 
   use.buffer = TRUE, 
@@ -204,12 +204,12 @@ invisible(regionalplot(
   ),
   # do not write a pdf file - remove this line to do so
   out.format = NULL
-))
+)
 
 # we can extract data or manipulate (customize) the buffer
 # e.g. show LD rsquare for two SNPs from the first region
 postgwas.buffer.ld.regionalplot[[1]]["rs13240", "rs8411"]
-# also, remove the ARPC4-TTLL3 gene
+# also, remove the ARPC4-TTLL3 gene (is then not plotted in the next example)
 postgwas.buffer.genes.regionalplot <- postgwas.buffer.genes.regionalplot[
                                         postgwas.buffer.genes.regionalplot$hgnc_symbol != "ARPC4-TTLL3", 
                                       ]
@@ -238,49 +238,52 @@ invisible(regionalplot(
 ))
 
 # same plots plus rare variants, filtering for de novo variants ('.')
-reseq.file <- system.file("extdata", "example.vcf.gz", package = "postgwas")
-regionalplot(
-  snps = snps,
-  gwas.resultfiles = gwas.resultfiles, 
-  use.buffer = TRUE, 
-  var.options = list(
-    vcf = list(
-            file = reseq.file, 
-            remap.positions = FALSE
-          ), 
-    vcf.id.prune = c(":"), 
-    vcf.info.color = list(EFF = "HIGH", EFF = "MODERATE", EFF = "LOW")
-  ),
-  # remove this argument or set file = "pdf" to plot to a file
-  out.format = list(file = NULL, panels.per.page = 2, global.scale = 1.2)
-)
-
-# comparative frequencies with two different resequencing datasets
-# also, exclude variants with MAF < 0.4 (is applied to both datasets)
-reseq.file2 <- system.file("extdata", "example2.vcf.gz", package = "postgwas")
-invisible(regionalplot(
-  snps = snps,
-  gwas.resultfiles = gwas.resultfiles, 
-  use.buffer = TRUE, 
-  var.options = list(
-    vcf = list(
-            list(
+\donttest{
+  reseq.file <- system.file("extdata", "example.vcf.gz", package = "postgwas")
+  
+  regionalplot(
+    snps = snps,
+    gwas.resultfiles = gwas.resultfiles, 
+    use.buffer = TRUE, 
+    var.options = list(
+      vcf = list(
               file = reseq.file, 
               remap.positions = FALSE
             ), 
-            list(
-              file = reseq.file2, 
-              remap.positions = FALSE,
-              chrom.map = data.frame(CHR = 1:23, CHR.VCF = paste("chr", 1:23, sep = ""))
-            )
-          ),
-    vcf.id.prune = c("rs622349", "rs1123078", "rs4965603", "rs878099", "rs7170610"), 
-    vcf.info.color = list(AF = "."), 
-    vcf.af.prune = c(AF=40)
-  ),
-  # do not write a pdf file - remove this line to do so
-  out.format = NULL
-))
+      vcf.id.prune = c(":"), 
+      vcf.info.color = list(EFF = "HIGH", EFF = "MODERATE", EFF = "LOW")
+    ),
+    # remove this argument or set file = "pdf" to plot to a file
+    out.format = list(file = NULL, panels.per.page = 2, global.scale = 1.2)
+  )
+
+  # comparative frequencies with two different resequencing datasets
+  # also, exclude variants with MAF < 0.4 (is applied to both datasets)
+  reseq.file2 <- system.file("extdata", "example2.vcf.gz", package = "postgwas")
+  invisible(regionalplot(
+    snps = snps,
+    gwas.resultfiles = gwas.resultfiles, 
+    use.buffer = TRUE, 
+    var.options = list(
+      vcf = list(
+              list(
+                file = reseq.file, 
+                remap.positions = FALSE
+              ), 
+              list(
+                file = reseq.file2, 
+                remap.positions = FALSE,
+                chrom.map = data.frame(CHR = 1:23, CHR.VCF = paste("chr", 1:23, sep = ""))
+              )
+            ),
+      vcf.id.prune = c("rs622349", "rs1123078", "rs4965603", "rs878099", "rs7170610"), 
+      vcf.info.color = list(AF = "."), 
+      vcf.af.prune = c(AF=40)
+    ),
+    # do not write a pdf file - remove this line to do so
+    out.format = NULL
+  ))
+}
 
 # this adds a complete custom data track
 # function to reserve space in the panel

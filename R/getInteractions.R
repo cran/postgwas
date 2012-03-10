@@ -174,10 +174,16 @@ getInteractions.GO <- function(
                            ) {
   
   if(!"GOSim" %in% names(installed.packages()[, 'Package'])) {
-    stop("This functionality requires the 'GOSim' package to be installed.\n")
-  } else {
-    suppressPackageStartupMessages(require(GOSim, quietly = TRUE))
+    if(interactive() && readline("Package 'GOSim' is not installed. Try to install? [Y/N] ") %in% c("Y", "y")) {
+      biocLite <- NULL
+      source("http://bioconductor.org/biocLite.R")
+      biocLite(c("GO.db", "annotate", "topGO", "RBGL", "graph", "org.Hs.eg.db"))
+      install.packages("GOSim", repos = "http://cran.us.r-project.org")
+    } else {
+      stop("This function requires the GOSim package to be installed.\n")		
+    }
   }
+  suppressPackageStartupMessages(require(GOSim, quietly = TRUE))
 
   if(is.null(filter.ids) || !is.vector(filter.ids) || length(filter.ids) <= 0)
     stop("Argument 'filter.ids' has to be set to a nonempty vector.\n")

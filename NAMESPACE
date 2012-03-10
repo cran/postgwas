@@ -7,10 +7,3 @@ importFrom(gtools, odd, even)
 # regionalplot
 import(lattice)
 importFrom(gdata, trim)
-# regionalplot rare variants
-# importFrom(VariantAnnotation, info, scanVcfHeader, scanVcf, ScanVcfParam)
-# importFrom(gdata, trim)
-# importFrom(GenomicRanges, GRanges, start, end, shift, seqnames, elementMetadata)
-# importFrom(IRanges, IRanges)
-# gwas2network
-# import(igraph)

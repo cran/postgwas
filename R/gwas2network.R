@@ -94,8 +94,16 @@ gwas2network <- function(
   if(is.null(vertexcolor.GO.regex) && !is.null(vertexcolor.GO.enrich)) {
     if(!is.vector(vertexcolor.GO.enrich) || length(vertexcolor.GO.enrich) > 1 || typeof(vertexcolor.GO.enrich) != "character")
       stop("Argument 'vertexcolor.GO.enrich' has to be a character string defining an Annotation package name (see help pages).\n")
-    if(!("GOSim" %in% installed.packages()[, "Package"]))
-      stop("Vertex colorization by GO enrichment requires the GOSim package to be installed.\n")
+    if(!("GOSim" %in% installed.packages()[, "Package"])) {
+      if(interactive() && readline("Package 'GOSim' is not installed. Try to install? [Y/N] ") %in% c("Y", "y")) {
+        biocLite <- NULL
+        source("http://bioconductor.org/biocLite.R")
+        biocLite(c("GO.db", "annotate", "topGO", "RBGL", "graph", "org.Hs.eg.db"))
+        install.packages("GOSim", repos = "http://cran.us.r-project.org")
+      } else {
+        stop("Vertex colorization by GO enrichment requires the GOSim package to be installed.\n")		
+      }
+    }
     if(biomart.config$gene$attr$id != "entrezgene") 
       warning("Vertex colorization by significance normally requires entrez gene ids (specify properly in the biomart configuration)\n")
     require(GOSim)
@@ -115,20 +123,12 @@ gwas2network <- function(
     }
   }
   
-  if(!("igraph" %in% installed.packages()[, "Package"])) {
-	if(interactive() && readline("Package 'igraph' is not installed. Try to install? [Y/N] ") %in% c("Y", "y")) {
-		install.packages("igraph", repos = "http://cran.us.r-project.org")
-	} else {
-		stop("Package igraph is required for gwas2network but not installed.\n")		
-	}
-  } else {
 	# there is a legacy package 'igraph0' that masks igraph and leads to errors
 	# ensure that our igraph is first on search path 
 	# and remember its current position for restore at function exit
-    igraph.pos.orig <- which(search() == "package:igraph")
+  igraph.pos.orig <- which(search() == "package:igraph")
 	suppressWarnings(detach("package:igraph", force = TRUE))
 	suppressWarnings(suppressPackageStartupMessages(library(igraph, pos = 2, quietly = TRUE)))
-  }
 
   
   # we need an idmap for two purposes:

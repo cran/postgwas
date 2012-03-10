@@ -140,12 +140,9 @@ network <- read.table(system.file(
 }
 
 # run gwas2network without vertex color
+# on windows the on screen device does not produce good results, 
 # set file.verbosity > 0 to plots graph + communities cleanly to files
 # note that entrez IDs are passed as network argument, but names are plotted
-# all genes have crosses on their vertex representations:
-# association in this module comes most probably from a single SNP
-# (look into the accomanying gwas2networkMultiAnnotation... file)
-# one could use more sophisticated snp2gene mapping to avoid that
 net <- gwas2network(
   gwasgenes.prox,
   network = network,
@@ -159,13 +156,13 @@ net <- gwas2network(
 # display the returned graph
 gwas2network.plot(net, device = options("device")$device)
 
-\dontrun{
+\donttest{
 
   ###### comparative network between two studies plus enrichment ######
 
-  # construct random association data of a second study
-  library(GOSim)
-  random.geneids <- as.numeric(mappedkeys(org.Hs.egGENENAME)[floor(runif(200, 1, length(as.list(org.Hs.egSYMBOL))))])
+  # construct random association data of a second study (uncomment following line to do that really randomly)
+  # random.geneids <- as.numeric(mappedkeys(org.Hs.egGENENAME)[floor(runif(100, 1, length(as.list(org.Hs.egSYMBOL))))])
+  random.geneids <- c(477, 4751, 9899, 10316, 10776, 29901, 80124, 221395, 93973, 157313, 5536, 4735, 55089)
   gwasgenes.random <- data.frame(
     # dummy SNP names, no multi annotations
     SNP = 1:length(random.geneids), 
@@ -183,14 +180,18 @@ gwas2network.plot(net, device = options("device")$device)
   # this produces several result files including plots in the current directory!
   net <- gwas2network(
     gwasgenes.combined,
-    network = net.GO
+    network = net.GO,
+    file.verbosity = 0
   )
+  gwas2network.plot(net, device = options("device")$device)
+  
+  # when file.verbosity >= 2, we can restore graph data from text files to do further study
+  # v <- read.table("gwas2networkGraphVertices.csv", header = TRUE)
+  # e <- read.table("gwas2networkGraphEdges.csv", header = TRUE)
+  # g <- graph.data.frame(e, vertices = v, directed = FALSE)
 
-  # we can also restore graph data from text files to do further study
-  v <- read.table("gwas2networkGraphVertices.csv", header = TRUE)
-  e <- read.table("gwas2networkGraphEdges.csv", header = TRUE)
-  g <- graph.data.frame(e, vertices = v, directed = FALSE)
-
+}
+\dontrun{
 
   ###### example for yeast ######
   rm(postgwas.buffer.snps, postgwas.buffer.genes)

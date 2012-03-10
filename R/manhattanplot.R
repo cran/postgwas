@@ -63,13 +63,15 @@ manhattanplot <- function(
   for(i in names(chr.shift))
     gwasdat[gwasdat$CHR.mapped == i, "pos"] <- gwasdat[gwasdat$CHR.mapped == i, "BP"] + chr.shift[as.character(i)]
 
-  # extract snps to annotate, reorganize parameters when multiple p thresholds are given
-  param <- cbind(highlight.logp, highlight.win, highlight.color)
+  # reorganize (and recycle) parameters when multiple p thresholds are given
+  param <- cbind(highlight.logp, highlight.win, highlight.color, highlight.cex)
   if(nrow(param) > 1) {
+    # highlight tresholds have to be sorted
     param <- param[order(highlight.logp), ]
     highlight.logp <- param[, "highlight.logp"]
     highlight.win <- param[, "highlight.win"]
     highlight.color <- param[, "highlight.color"]
+    highlight.cex <- param[, "highlight.cex"]
   }
 
   
@@ -84,51 +86,54 @@ manhattanplot <- function(
   gwasdat$x <- gwasdat$pos / max(gwasdat$pos)
   gwasdat$y <- gwasdat$logp / max(gwasdat$logp)
   
-  # highlight tresholds have to be sorted
-  highlight.color <- highlight.color[order(highlight.logp, decreasing = FALSE)]
-  highlight.logp <- highlight.logp[order(highlight.logp, decreasing = FALSE)]
-  
+  # highl only contains the PEAK data point of highlighted regions
   highl <- mapply(
-    function(logp, win, col) {
+    function(logp, win, col, cex) {
       highl    <- gwasdat[gwasdat$logp > as.numeric(logp), ]
       highl    <- removeNeighborSnps(highl, as.numeric(win))
       highl$CHR.mapped <- as.numeric(as.vector(highl$CHR.mapped))
       highl$BP <- as.numeric(as.vector(highl$BP))
       highl$P <- as.numeric(as.vector(highl$P))
       highl$color <- rep(col, nrow(highl))
+      highl$cex <- rep(cex, nrow(highl))
       return(highl)
     }, 
     highlight.logp, 
     highlight.win, 
-    highlight.color, 
+    highlight.color,
+    highlight.cex, 
     SIMPLIFY = FALSE
   )
-  # for multiple p threshs: make real intervals (currently only selected < p)
+  # for multiple p threshs: make intervals (currently highl only selected for upper bound, i.e. < p)
   if(length(highlight.logp) > 1)
     for(i in 1:(length(highlight.logp)-1))
       highl[[i]] <- highl[[i]][highl[[i]]$logp <= highlight.logp[i+1], ]
 
-  # apply to all thresholds (colors)
+  # shape of all ordinaty data points: circle
+  gwasdat$shape <- 1
+  
+  # all highlighted data points: triangle
+  # also set color and cex of highlighted data points
   mapply(
-    function(highl, win, color) {
+    function(highl, win, color, cex) {
       if(nrow(highl) > 0) {
         for(idx in 1:(nrow(highl))) {
-          gwasdat[
-            as.numeric(gwasdat$CHR.mapped) == as.numeric(highl[idx, "CHR.mapped"]) & 
-            gwasdat$BP >= as.numeric(highl[idx, "BP"]) - win & 
-            gwasdat$BP <= as.numeric(highl[idx, "BP"]) + win, 
-            "color"
-          ] <<- color
+          gwasdat.highl.idx <- which(
+                                 as.numeric(gwasdat$CHR.mapped) == as.numeric(highl[idx, "CHR.mapped"]) & 
+                                 gwasdat$BP >= as.numeric(highl[idx, "BP"]) - win & 
+                                 gwasdat$BP <= as.numeric(highl[idx, "BP"]) + win
+                               )
+          gwasdat[gwasdat.highl.idx, "color"] <<- color
+          gwasdat[gwasdat.highl.idx, "shape"] <<- 2
+          gwasdat[gwasdat.highl.idx, "cex"] <<- cex
         }
       }
     },
     highl, 
     as.numeric(highlight.win), 
-    highlight.color
+    highlight.color,
+    highlight.cex
   )
-  
-  gwasdat$shape <- 1
-  gwasdat$shape[gwasdat$color != "grey50" & gwasdat$color != "grey10"] <- 2
   
   
   ######### plot points and genes #########
@@ -157,58 +162,60 @@ manhattanplot <- function(
       x = unit(gwasdat.highl$x, "npc"), 
       y = unit(gwasdat.highl$y, "npc"),
       pch = 25,
-      size = unit(0.005 * highlight.cex^1.8, "npc"),
+      size = unit(0.005 * as.numeric(gwasdat.highl$cex)^1.7, "npc"),
       gp = gpar(col = gwasdat.highl$color, fill = gwasdat.highl$color)
     )
     
     # text (gene) annot
-    highl.df <- list2df(highl)
-    if(!is.null(highlight.text) && nrow(highl.df) > 0) {
-      
-      if(highlight.text == "SNP") {
-        grid.text(
-          label = highl.df$SNP, 
-          x = unit(highl.df$x, "npc"), 
-          y = unit(highl.df$y, "npc") + unit(0.013 * highlight.cex, "npc"),
-          just = "bottom",
-          gp = gpar(col = highl.df$color, fill = highl.df$color, cex = 0.7 * highlight.cex)
-        )
-      } else {
+    for(highl.df in highl) {
+      if(!is.null(highlight.text) && nrow(highl.df) > 0) {
         
-        cat("Geneplot...\n")
-        colnames(highl.df)[colnames(highl.df) == "CHR.mapped"] <- "chrmp"
-        highlight.text <- snp2gene.prox(snps = highl.df, by.genename = TRUE, level = 1, biomart.config = biomart.config, use.buffer = use.buffer)
-        
-        if(nrow(highlight.text) > 0) {
-          highlight.text.left <- highlight.text[highlight.text$direction == "down", ]
-          if(nrow(highlight.text.left) > 0)
-            grid.text(
-              label = highlight.text.left$genename, 
-              x = unit(highlight.text.left$x, "npc") - unit(0.005 * highlight.cex^2, "npc"), 
-              y = unit(highlight.text.left$y, "npc"),
-              just = "right",
-              gp = gpar(col = highlight.text.left$color, fill = highlight.text.left$color, cex = 0.7 * highlight.cex)
-            )
-          
-          highlight.text.right <- highlight.text[highlight.text$direction == "up", ]
-          if(nrow(highlight.text.right) > 0)
-            grid.text(
-              label = highlight.text.right$genename, 
-              x = unit(highlight.text.right$x, "npc") + unit(0.005 * highlight.cex^2, "npc"), 
-              y = unit(highlight.text.right$y, "npc"),
-              just = "left",
-              gp = gpar(col = highlight.text.right$color, fill = highlight.text.right$color, cex = 0.7 * highlight.cex)
-            )
-          
-          highlight.text.top <- highlight.text[highlight.text$direction == "cover", ]
-          if(nrow(highlight.text.top) > 0)
-            grid.text(
-              label = highlight.text.top$genename, 
-              x = unit(highlight.text.top$x, "npc"), 
-              y = unit(highlight.text.top$y, "npc") + unit(0.013 * highlight.cex, "npc"),
+        if(highlight.text == "SNP") {
+          grid.text(
+              label = highl.df$SNP, 
+              x = unit(highl.df$x, "npc"), 
+              y = unit(highl.df$y, "npc") + unit(0.013 * as.numeric(highl.df$cex), "npc"),
               just = "bottom",
-              gp = gpar(col = highlight.text.top$color, fill = highlight.text.top$color, cex = 0.7 * highlight.cex)
-            )
+              gp = gpar(col = highl.df$color, fill = highl.df$color, cex = 0.7 * as.numeric(highl.df$cex))
+          )
+        } else {
+          
+          cat("Geneplot...\n")
+          colnames(highl.df)[colnames(highl.df) == "CHR.mapped"] <- "chrmp"
+          highl.df <- snp2gene.prox(snps = highl.df, by.genename = TRUE, level = 1, biomart.config = biomart.config, use.buffer = use.buffer)
+          
+          if(nrow(highl.df) > 0) {
+            
+            highl.df.left <- highl.df[highl.df$direction == "down", ]
+            if(nrow(highl.df.left) > 0)
+              grid.text(
+                  label = highl.df.left$genename, 
+                  x = unit(highl.df.left$x, "npc") - unit(0.005 * as.numeric(highl.df.left$cex)^2, "npc"), 
+                  y = unit(highl.df.left$y, "npc"),
+                  just = "right",
+                  gp = gpar(col = highl.df.left$color, fill = highl.df.left$color, cex = 0.7 * as.numeric(highl.df.left$cex))
+              )
+            
+            highl.df.right <- highl.df[highl.df$direction == "up", ]
+            if(nrow(highl.df.right) > 0)
+              grid.text(
+                  label = highl.df.right$genename, 
+                  x = unit(highl.df.right$x, "npc") + unit(0.005 * as.numeric(highl.df.right$cex)^2, "npc"), 
+                  y = unit(highl.df.right$y, "npc"),
+                  just = "left", 
+                  gp = gpar(col = highl.df.right$color, fill = highl.df.right$color, cex = 0.7 * as.numeric(highl.df.right$cex))
+              )
+            
+            highl.df.top <- highl.df[highl.df$direction == "cover", ]
+            if(nrow(highl.df.top) > 0)
+              grid.text(
+                  label = highl.df.top$genename, 
+                  x = unit(highl.df.top$x, "npc"), 
+                  y = unit(highl.df.top$y, "npc") + unit(0.013 * as.numeric(highl.df.top$cex), "npc"),
+                  just = "bottom",
+                  gp = gpar(col = highl.df.top$color, fill = highl.df.top$color, cex = 0.7 * as.numeric(highl.df.top$cex))
+              )
+          }
         }
       }
     }

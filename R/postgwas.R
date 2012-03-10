@@ -3,13 +3,13 @@ postgwas <- function(
               suggestive.p = 1e-06, 
               genomewide.p = 5e-08, 
               biomart.config = biomartConfigs$hsapiens, 
-			  GOpackagename = "org.Hs.eg.db", 
-			  ped = NULL, 
+			        GOpackagename = "org.Hs.eg.db", 
+			        ped = NULL, 
               map = NULL
             ) {
 
-  if(getRversion() >= '2.15.1') 
-	  utils::globalVariables(c("postgwas.buffer.genes", "postgwas.buffer.snps", "postgwas.buffer.genes.regionalplot", "postgwas.buffer.snps.regionalplot", "postgwas.buffer.exons.regionalplot"))
+#  if(getRversion() >= '2.15.1') 
+#	  utils::globalVariables(c("postgwas.buffer.genes", "postgwas.buffer.snps", "postgwas.buffer.genes.regionalplot", "postgwas.buffer.snps.regionalplot", "postgwas.buffer.exons.regionalplot"))
   
   suppressWarnings(rm(postgwas.buffer.snps, postgwas.buffer.genes, postgwas.buffer.genes.regionalplot, postgwas.buffer.ld.regionalplot, pos = ".GlobalEnv"))
   suppressWarnings(rm(postgwas.buffer.snps, postgwas.buffer.genes, postgwas.buffer.genes.regionalplot, postgwas.buffer.ld.regionalplot, pos = "postgwasBuffer"))
@@ -86,7 +86,6 @@ postgwas <- function(
     manhattanplot(
       gwas.resultfile = gwas.resultfile, 
       highlight.logp = -log10(genomewide.p), 
-      highlight.win = 25000, 
       biomart.config = biomart.config
     ), 
     error = function(e) cat(paste("manhattanplot: An error occured, proceeding with the next function.  ", e))

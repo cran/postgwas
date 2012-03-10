@@ -42,10 +42,6 @@ A matrix containing r-square values (numeric datatype). Row and column names mat
 
 \examples{
 
-\dontshow{
-  has.multicore <- any(installed.packages()[, "Package"] == "multicore")
-}
-
 # filenames of ped/map files with genotype data
 pedmap.files <- system.file(
                   "extdata", 
@@ -57,7 +53,7 @@ genotypes <- getGenotypes(
                map = pedmap.files[1], 
                ped = pedmap.files[2]
               )
-if(has.multicore) {
+if(any(installed.packages()[, "Package"] == "multicore")) {
   LDparallel(genotypes)
 } else {
   cat("Package multicore not installed, cannot run example.\n")

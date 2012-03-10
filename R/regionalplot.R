@@ -24,7 +24,7 @@ regionalplot <- function(
               panel.add = function(...) return(NULL)
           ) {
 
-  # codecheck tool avoid unknown binding warnings
+  # avoid unknown binding warnings in codecheck tool
   pheno <- "NULL"
   
   if(missing(gwas.resultfiles) || is.null(gwas.resultfiles)) 
@@ -55,9 +55,16 @@ regionalplot <- function(
     plot.variants <- FALSE
   } else {
     plot.variants <- TRUE
-	if(!'VariantAnnotation' %in% installed.packages()[, 'Package'])
-		stop("Package VariantAnnotation is not installed but required when var.options are set.\n")
-	suppressPackageStartupMessages(stopifnot(require(VariantAnnotation, quietly = TRUE)))
+    if(!'VariantAnnotation' %in% installed.packages()[, 'Package']) {
+      if(interactive() && readline("Package 'VariantAnnotation ' is not installed. Try to install? [Y/N] ") %in% c("Y", "y")) {
+        biocLite <- NULL
+        source("http://bioconductor.org/biocLite.R")
+        biocLite("VariantAnnotation")
+      } else {
+        stop("Package VariantAnnotation is not installed but required when var.options are set.\n")		
+      }
+    }
+    suppressPackageStartupMessages(stopifnot(require(VariantAnnotation, quietly = TRUE)))
     if(is.null(var.options$details)) var.options$details <- 3
     if(is.null(var.options$vcf.af.prune)) var.options$vcf.af.prune <- c(AF=50)
     if(length(var.options$vcf.af.prune) > 1) 

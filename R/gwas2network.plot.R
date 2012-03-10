@@ -6,28 +6,13 @@ gwas2network.plot <- function(
                    ...
                  ) {
 
-  if(!("igraph" %in% installed.packages()[, "Package"])) {
-	  if(interactive() && readline("Package 'igraph' is not installed. Try to install? [Y/N] ") %in% c("Y", "y")) {
-	    install.packages("igraph", repos = "http://cran.us.r-project.org")
-    } else {
-	  stop("Package igraph is required for gwas2network but not installed.\n")		
-	}
-  } else {
 	# there is a legacy package 'igraph0' that masks igraph and leads to errors
 	# ensure that our igraph is first on search path 
 	# and remember its current position for restore at function exit
 	igraph.pos.orig <- which(search() == "package:igraph")
 	suppressWarnings(detach("package:igraph", force = TRUE))
 	suppressWarnings(suppressPackageStartupMessages(library(igraph, pos = 2, quietly = TRUE)))
-  }
 					 
-  # there is a legacy package 'igraph0' that masks igraph and leads to errors
-  # ensure that our igraph is first on search path 
-  # and remember its current position for restore at function exit
-  igraph.pos.orig <- which(search() == "package:igraph")
-  detach("package:igraph", force = TRUE)
-  suppressWarnings(suppressPackageStartupMessages(library(igraph, pos = 2, quietly = TRUE)))
-    
   layout[, 1] <- layout[, 1] - min(layout[, 1])
   layout[, 2] <- layout[, 2] - min(layout[, 2])
   
@@ -191,9 +176,12 @@ gwas2network.plot <- function(
     )
   }
  
-  if(!identical(device, X11))
+  if(identical(device, X11) || (exists("windows") && (identical(device, windows) || identical(device, win.graph)))) {
+    # on-screen device was used, keep open
+  } else {
     dev.off()
-
+  }
+    
   # restore search path
   suppressWarnings(detach("package:igraph", force = TRUE))
   suppressWarnings(suppressPackageStartupMessages(library(igraph, pos = igraph.pos.orig, quietly = TRUE)))
