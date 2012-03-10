@@ -5,6 +5,7 @@ manhattanplot <- function(
                     highlight.color = NULL, 
                     highlight.text = "genes",
                     highlight.cex = 1,
+                    highlight.fontface = "bold", 
                     max.y = NULL,
                     reduce.dataset = TRUE, 
                     plot.title = gwas.resultfile, 
@@ -31,7 +32,15 @@ manhattanplot <- function(
   } else if(!all(highlight.color %in% colors())) {
     stop("Highlighting colors not defined or unknown (see colors())")
   }
+  
+  if(is.null(highlight.cex)) {
+    stop("Argument highlight.cex has to be set.\n")
+  }
 
+  if(is.null(highlight.fontface)) {
+    stop("Argument highlight.fontface has to be set.\n")
+  }
+  
   # preprocess data
   gwasdat <- vectorElements(gwasdat[, c("SNP", "CHR", "BP", "P")])
   gwasdat$P  <- as.numeric(gwasdat$P)
@@ -64,7 +73,7 @@ manhattanplot <- function(
     gwasdat[gwasdat$CHR.mapped == i, "pos"] <- gwasdat[gwasdat$CHR.mapped == i, "BP"] + chr.shift[as.character(i)]
 
   # reorganize (and recycle) parameters when multiple p thresholds are given
-  param <- cbind(highlight.logp, highlight.win, highlight.color, highlight.cex)
+  param <- cbind(highlight.logp, highlight.win, highlight.color, highlight.cex, highlight.fontface)
   if(nrow(param) > 1) {
     # highlight tresholds have to be sorted
     param <- param[order(highlight.logp), ]
@@ -72,6 +81,7 @@ manhattanplot <- function(
     highlight.win <- param[, "highlight.win"]
     highlight.color <- param[, "highlight.color"]
     highlight.cex <- param[, "highlight.cex"]
+    highlight.fontface <- param[, "highlight.fontface"]
   }
 
   
@@ -88,7 +98,7 @@ manhattanplot <- function(
   
   # highl only contains the PEAK data point of highlighted regions
   highl <- mapply(
-    function(logp, win, col, cex) {
+    function(logp, win, col, cex, font) {
       highl    <- gwasdat[gwasdat$logp > as.numeric(logp), ]
       highl    <- removeNeighborSnps(highl, as.numeric(win))
       highl$CHR.mapped <- as.numeric(as.vector(highl$CHR.mapped))
@@ -96,12 +106,14 @@ manhattanplot <- function(
       highl$P <- as.numeric(as.vector(highl$P))
       highl$color <- rep(col, nrow(highl))
       highl$cex <- rep(cex, nrow(highl))
+      highl$font <- rep(font, nrow(highl))
       return(highl)
     }, 
     highlight.logp, 
     highlight.win, 
     highlight.color,
-    highlight.cex, 
+    highlight.cex,
+    highlight.fontface, 
     SIMPLIFY = FALSE
   )
   # for multiple p threshs: make intervals (currently highl only selected for upper bound, i.e. < p)
@@ -110,7 +122,7 @@ manhattanplot <- function(
       highl[[i]] <- highl[[i]][highl[[i]]$logp <= highlight.logp[i+1], ]
 
   # shape of all ordinaty data points: circle
-  gwasdat$shape <- 1
+  gwasdat$shape <- 20
   
   # all highlighted data points: triangle
   # also set color and cex of highlighted data points
@@ -138,45 +150,46 @@ manhattanplot <- function(
   
   ######### plot points and genes #########
   if(!is.null(toFile) && is.character(toFile) && length(toFile) == 1)
-    pdf(toFile, width = 10, height = 5)
+    pdf(toFile, width = 4.8, height = 2, pointsize = 4)
   
     
   # use npc: everything scaled to papersize percent
   cat("Scatterplot...\n")
-  vp.plot <- viewport(width = 0.8, height = 0.8, name = "plot")
+  # main plot area size (leaves 0.125 space up and down and 0.08 left for axes viewports)
+  vp.plot <- viewport(x = 0.52, width = 0.88, height = 0.75, name = "plot")
   pushViewport(vp.plot)
   
-  gwasdat.plain <- gwasdat[gwasdat$shape == 1, ]
+  gwasdat.plain <- gwasdat[gwasdat$shape == 20, ]
   grid.points(
     x = unit(gwasdat.plain$x, "npc"), 
     y = unit(gwasdat.plain$y, "npc"),
     pch = gwasdat.plain$shape,
-    size = unit(0.0001, "npc"),
+    size = unit(0.0004, "npc"),
     gp = gpar(col = gwasdat.plain$color)
   )
 
-  gwasdat.highl <- gwasdat[gwasdat$shape != 1, ]
+  gwasdat.highl <- gwasdat[gwasdat$shape != 20, ]
   if(nrow(gwasdat.highl) > 0) {
     
     grid.points(
       x = unit(gwasdat.highl$x, "npc"), 
       y = unit(gwasdat.highl$y, "npc"),
       pch = 25,
-      size = unit(0.005 * as.numeric(gwasdat.highl$cex)^1.7, "npc"),
+      size = unit(0.004 * as.numeric(gwasdat.highl$cex)^1.7, "npc"),
       gp = gpar(col = gwasdat.highl$color, fill = gwasdat.highl$color)
     )
     
     # text (gene) annot
     for(highl.df in highl) {
       if(!is.null(highlight.text) && nrow(highl.df) > 0) {
-        
+
         if(highlight.text == "SNP") {
           grid.text(
               label = highl.df$SNP, 
               x = unit(highl.df$x, "npc"), 
               y = unit(highl.df$y, "npc") + unit(0.013 * as.numeric(highl.df$cex), "npc"),
               just = "bottom",
-              gp = gpar(col = highl.df$color, fill = highl.df$color, cex = 0.7 * as.numeric(highl.df$cex))
+              gp = gpar(col = highl.df$color, fill = highl.df$color, cex = 0.7 * as.numeric(highl.df$cex), fontface = highl.df$font)
           )
         } else {
           
@@ -186,24 +199,24 @@ manhattanplot <- function(
           
           if(nrow(highl.df) > 0) {
             
-            highl.df.left <- highl.df[highl.df$direction == "down", ]
+            highl.df.left <- highl.df[highl.df$direction == "up", ]
             if(nrow(highl.df.left) > 0)
               grid.text(
                   label = highl.df.left$genename, 
                   x = unit(highl.df.left$x, "npc") - unit(0.005 * as.numeric(highl.df.left$cex)^2, "npc"), 
                   y = unit(highl.df.left$y, "npc"),
                   just = "right",
-                  gp = gpar(col = highl.df.left$color, fill = highl.df.left$color, cex = 0.7 * as.numeric(highl.df.left$cex))
+                  gp = gpar(col = highl.df.left$color, fill = highl.df.left$color, cex = 0.7 * as.numeric(highl.df.left$cex), fontface = highl.df$font)
               )
             
-            highl.df.right <- highl.df[highl.df$direction == "up", ]
+            highl.df.right <- highl.df[highl.df$direction == "down", ]
             if(nrow(highl.df.right) > 0)
               grid.text(
                   label = highl.df.right$genename, 
                   x = unit(highl.df.right$x, "npc") + unit(0.005 * as.numeric(highl.df.right$cex)^2, "npc"), 
                   y = unit(highl.df.right$y, "npc"),
                   just = "left", 
-                  gp = gpar(col = highl.df.right$color, fill = highl.df.right$color, cex = 0.7 * as.numeric(highl.df.right$cex))
+                  gp = gpar(col = highl.df.right$color, fill = highl.df.right$color, cex = 0.7 * as.numeric(highl.df.right$cex), fontface = highl.df$font)
               )
             
             highl.df.top <- highl.df[highl.df$direction == "cover", ]
@@ -211,9 +224,9 @@ manhattanplot <- function(
               grid.text(
                   label = highl.df.top$genename, 
                   x = unit(highl.df.top$x, "npc"), 
-                  y = unit(highl.df.top$y, "npc") + unit(0.013 * as.numeric(highl.df.top$cex), "npc"),
+                  y = unit(highl.df.top$y, "npc") + unit(0.0175 * as.numeric(highl.df.top$cex), "npc"),
                   just = "bottom",
-                  gp = gpar(col = highl.df.top$color, fill = highl.df.top$color, cex = 0.7 * as.numeric(highl.df.top$cex))
+                  gp = gpar(col = highl.df.top$color, fill = highl.df.top$color, cex = 0.7 * as.numeric(highl.df.top$cex), fontface = highl.df$font)
               )
           }
         }
@@ -225,7 +238,7 @@ manhattanplot <- function(
 
   cat("Adding axes...\n")
   # y axis
-  vp.yaxis <- viewport(x = unit(0.05, "npc"), width = 0.1, height = 0.8)
+  vp.yaxis <- viewport(x = unit(0.04, "npc"), width = 0.08, height = 0.75)
   upViewport()
   pushViewport(vp.yaxis)
   
@@ -234,21 +247,21 @@ manhattanplot <- function(
   ticks <- seq(1, y.maxtick, by = ceiling(y.maxtick/8))
   grid.text(
     label = ticks, 
-    x = unit(0.5, "npc"), 
+    x = unit(0.6, "npc"), 
     y = ticks / max(gwasdat$logp),
     gp = gpar(col = "grey30", cex = 0.8)
   )
   
   grid.text(
     label = "-log10(p)", 
-    x = unit(0.25, "npc"), 
+    x = unit(0.3, "npc"), 
     y = unit(0.5, "npc"),
     rot = 90, 
     gp = gpar(col = "grey30", fontface = "bold", cex = 0.8)
   )
   
   # x axis
-  vp.axes <- viewport(y = unit(0.05, "npc"), width = 0.8, height = 0.1)
+  vp.axes <- viewport(x = 0.52, y = unit(0.05, "npc"), width = 0.88, height = 0.1)
   upViewport()
   pushViewport(vp.axes)
   
@@ -259,21 +272,21 @@ manhattanplot <- function(
   grid.text(
     label = chr.map$CHR[odd(1:nrow(chr.map))], 
     x = ticks.pos[odd(1:nrow(chr.map))], 
-    y = unit(0.5, "npc"),
+    y = unit(0.66, "npc"),
     gp = gpar(col = "grey30", cex = 0.7)
   )
   
   grid.text(
     label = chr.map$CHR[even(1:nrow(chr.map))], 
     x = ticks.pos[even(1:nrow(chr.map))], 
-    y = unit(0.6, "npc"),
+    y = unit(0.775, "npc"),
     gp = gpar(col = "grey30", cex = 0.7)
     )
   
   grid.text(
     label = "Chromosome", 
     x = unit(0.5, "npc"), 
-    y = unit(0.25, "npc"),
+    y = unit(0.28, "npc"),
     gp = gpar(col = "grey30", fontface = "bold", cex = 0.8)
   )
   
@@ -281,7 +294,7 @@ manhattanplot <- function(
   ######### plot title #########
   
   if(!is.null(plot.title)) {
-    vp.title <- viewport(y = unit(0.975, "npc"), width = 0.1, height = 0.8)
+    vp.title <- viewport(y = unit(0.975, "npc"), width = 0.9, height = 0.05)
     upViewport()
     pushViewport(vp.title)
     
@@ -289,7 +302,7 @@ manhattanplot <- function(
       label = plot.title, 
       x = unit(0.5, "npc"), 
       y = unit(0.5, "npc"),
-      gp = gpar(col = "grey30", cex = 1)
+      gp = gpar(col = "grey30", cex = 0.8)
     )
   }
 

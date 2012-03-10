@@ -15,6 +15,7 @@ manhattanplot(
   highlight.color = NULL, 
   highlight.text = "genes",
   highlight.cex = 1,
+  highlight.fontface = "bold", 
   max.y = NULL,
   reduce.dataset = TRUE, 
   plot.title = gwas.resultfile, 
@@ -31,10 +32,11 @@ manhattanplot(
   \item{highlight.color}{character. Can be set to a user-defined color as listed in colors(). The length of this argument should match the length of highlight.logp or is recycled if necessary. }
   \item{highlight.text}{character(1). When 'SNP', draws SNP identifiers above the peak SNP of each highlighted locus. When "genes" runs snp2gene to annotate the closest genes in each direction. When NULL, draws no annotation at all.}
   \item{highlight.cex}{numeric. This is applied as cex argument (see \code{\link{par}}) to the gene labels, and in similar form to the plotted point symbol size of highlighted SNPs. The length of this argument should match the length of highlight.logp or is recycled if necessary.}
+  \item{highlight.fontface}{character. Determines the fontface of the annotation text (can be "plain", "bold", "italic", "oblique", and "bold.italic"). The length of this argument should match the length of highlight.logp or is recycled if necessary. See details in the corresponding grid parameter documentation \code{\link{gpar}}. }
   \item{max.y}{numeric. The maximum -log(p) value to display. This can be used when very small p's occur (remaining data is then displayed very compressed.)}
   \item{reduce.dataset}{boolean(1). When TRUE, randomly removes SNPs to reduce data load, where the probability for a SNP to be removed is the squared p-value. SNPs with p < 1e-04 are untouched.}
   \item{plot.title}{character(1). Title text of the plot.}
- \item{biomart.config}{list. A biomart config list as described in \code{\link{biomartConfigs}}. This is only cosidered when highlight.text = "genes" and directly passed to the snp2gene function for gene annotations.}
+  \item{biomart.config}{list. A biomart config list as described in \code{\link{biomartConfigs}}. This is only cosidered when highlight.text = "genes" and directly passed to the snp2gene function for gene annotations.}
   \item{use.buffer}{boolean(1). As in \code{\link{snp2gene}}.}
   \item{toFile}{character. A file/pathname to write the plot to (in pdf format). When NULL, plots to the current device (usually the display).}
 }
@@ -91,16 +93,30 @@ postgwas.buffer.genes <- read.table(system.file("extdata", "postgwas.buffer.gene
 
   # we see that a locus appears twice (annotating the same genes)
   # increase window size to combine these loci
-  # also, set alternative colors and size
+  # you can uncomment the 'tiff' and 'dev.off' to write a different format
+  # the effects vary between operating systems:
+  # experiment with the pointsize (= font size) and width/height (affects dots and symbols)
+  # when the dots disappear the resolution is too low
+\dontshow{
+  if(capabilities("cairo")) {
+    dev.new(type = "cairo", width = 12, height = 5)
+  } else {
+    dev.new(width = 12, height = 5)
+  }
+}
+  # tiff("manhattanplot.tiff", width = 20, height = 8, units = "cm", res = 2000, compression = "lzw", pointsize = 10)
   manhattanplot(
     gwas.resultfile, 
     highlight.logp = c(3, 4), 
     highlight.win = 130000,
     highlight.color = c("darkgreen", "red"),
+    highlight.cex = c(0.7, 0.9),
+    highlight.fontface = c("plain", "bold"),  
     use.buffer = TRUE,
     plot.title = "truncated genomewide example dataset", 
     toFile = NULL
   )
+  # dev.off()
 }
 
 

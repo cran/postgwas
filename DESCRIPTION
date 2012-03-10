@@ -1,10 +1,8 @@
 Package: postgwas
-Version: 1.01
+Version: 1.02
 Date: 2012-03-10
 Title: GWAS Post-Processing Utilities
-Author@R: c(person("Milan Hiersche", "Developer", role = c("aut",
-        "cre"), email = "mihi@uni-muenster.de")
-Author: Milan Hiersche
+Author: Milan Hiersche <mihi@uni-muenster.de>
 Maintainer: Milan Hiersche <mihi@uni-muenster.de>
 Depends: R (>= 2.11.0), biomaRt, genetics, lattice, igraph (>= 0.6-2)
 Suggests: GOSim, parallel, VariantAnnotation
@@ -17,6 +15,6 @@ Description: Facilitates annotation of genes to SNPs using proximity or
 License: GPL (>= 2)
 URL: http://www.r-project.org
 BugReports: mihi@uni-muenster.de
-Packaged: 2012-09-12 16:14:53 UTC; milan
+Packaged: 2012-11-11 17:01:41 UTC; milan
 Repository: CRAN
-Date/Publication: 2012-09-12 16:45:21
+Date/Publication: 2012-11-11 17:55:36

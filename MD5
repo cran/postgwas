@@ -1,9 +1,9 @@
-0ba2f66e930f98fad9e431b777f4bc6c *DESCRIPTION
+bc7e17d62881e4c9dd5106b1f5135c40 *DESCRIPTION
 f5d5879b149d7a5bf0ffcf7f72e026be *NAMESPACE
 e7933d0a1649cb25b4a4bd94eefc4594 *R/LDparallel.R
 03bb37928dcd4a1b719423752b9b1fdf *R/biomartWrapper.R
 a56927d1d6641fa3c1d3363449627077 *R/closestGenes.R
-c3f8744f6b9bd6868d2b1c1f59392691 *R/data.gwas2network.R
+2a4ac51692b65a14769454ac45564b83 *R/data.gwas2network.R
 145bfb84b279eeaef9f072b2efdd5dce *R/data.gwas2network.vertexcolor.R
 ec347380916bbc92448700400805e1d0 *R/data.regionalplot.genes.R
 c640f0373dbdf2e0f302a6b69b7e028c *R/data.regionalplot.ld.R
@@ -19,7 +19,7 @@ f258fc7d3e99d222c035054520506920 *R/getSnps.R
 e3ac9087c16b5c0977ebf5620451a961 *R/gwas2network.plot.R
 edb134bd3fcde9c4ce7e35f7f6555df9 *R/imputeRemappedPositions.R
 30fc455acd86e4e4f4a5789597984653 *R/ldGenes.R
-694df4d1891f3718075433ee97a99853 *R/manhattanplot.R
+1a5ca42e80a20bee0d6e06aa902de312 *R/manhattanplot.R
 2aa2eef961b3db4eaf0a2c3dbfc3f318 *R/panel.regionalplot.genelabels.R
 2e76d30bdc31fe2068ab237d109e1cc4 *R/panel.regionalplot.ld.R
 5a7d8625d2b0d16fabff261da9f8da6e *R/panel.regionalplot.snpnames.R
@@ -31,7 +31,7 @@ bf6ac7cf70a6400c88b52b5ffd5d8991 *R/removeNeighborSnps.R
 0f27c0f6d25cba5a2f670d4d9ea43f63 *R/snp2gene.R
 b772237be55c4b3e619f232910444e50 *R/utils.R
 57cac6d8bff21577796b98314bf0f9f3 *R/ytracks.regionalplot.R
-d41d8cd98f00b204e9800998ecf8427e *inst/NEWS
+ee45ba09b41f877f4ebc5da7b5519a51 *inst/NEWS
 f0d92d366b95f5a0df6472ae422ce958 *inst/extdata/example.cov
 1f2a79a5ffac04066b1e2b09fee00c2a *inst/extdata/example.gwas1
 60368959f83ad092c1c9b4a41f35e021 *inst/extdata/example.gwas2
@@ -58,7 +58,7 @@ ab828be9fcafee1118bb209b040b5710 *inst/extdata/postgwas.buffer.snps
 9d9cb117d1709c6b12cf1a85784cb53d *man/gwas2network.Rd
 1a864672050d67a329f1d8a895806aa4 *man/gwas2network.plot.Rd
 78afb908add295b65558b7dcb12f11ad *man/ldGenes.Rd
-ecfac7d172908a6d78273fe38b7f8ae1 *man/manhattanplot.Rd
+55e42d62e3cd421be498c84ec8451b3e *man/manhattanplot.Rd
 476b38f03a7ab7a9ee45c24f2e036dfe *man/postgwas-package.Rd
 3dd3f9f729b94bde34e818ec8846181d *man/postgwas.Rd
 c475456cdff1ee207d3d4c3d356f272f *man/postgwasBuffer.Rd

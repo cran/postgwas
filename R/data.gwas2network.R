@@ -30,7 +30,6 @@ data.gwas2network <- function(
   # normalize so that lexicographically smaller gene names are in column 1
   e <- vectorElements(as.data.frame(lexsortColumns(e, 1, 2)))
 
-  
   if(!is.null(prune)) {
     cat(paste("Reducing network to", prune, "interactors\n"))
     if(prune == "gwasonly") {
@@ -40,20 +39,26 @@ data.gwas2network <- function(
       e <- e[e[, 1] %in% genes.gwas | e[, 2] %in% genes.gwas, ]
     }
     # for shared pruning, edges must be unique - we do that later
+    if(nrow(e) < 1)
+      stop("Network has no edges after pruning!\n")
   }
   
   # make edges unique
   cat("Searching for duplicate edges and collapsing these to single edges (if existing)...\n")
   cat("Collapsed edges use the mean of the original weights. Labels are being joined together.\n")
-
+  
   e <- list2df(by(
     e, 
     factor(paste(e[, 1], e[ ,2], ",")), 
     function(df) {
       single <- df[1, ]
-      if(nrow(df > 1)) {
+      if(nrow(df) > 1) {
         if(!is.null(single$label)) {
-          single$label <- paste(unique(df$label), collapse = " / ")
+          if(length(unique(df$label)) > 3) {
+            single$label <- "> 3 labels"
+          } else {
+            single$label <- paste(unique(df$label), collapse = " / ")
+          }
           single$weight <- edge.weight.collapse.fun(as.numeric(as.vector(df$weight)), df$label)
         } else {
           single$weight <- edge.weight.collapse.fun(as.numeric(as.vector(df$weight)), NULL)
@@ -188,7 +193,7 @@ data.gwas2network <- function(
   # now we have in ew the columns degree.x, degree.y and P.x and P.y
   e <- e[order(e$gwas2network.genename.x, e$gwas2network.genename.y), ]
   ew <- ew[order(ew$gwas2network.genename.x, ew$gwas2network.genename.y), ]
-  e$weight <- edge.weight.fun(p1 = ew$P.x, p2 = ew$P.y, degree1 = ew$degree.x, degree2 = ew$degree.y, weight = ew$net.weight.temp)
+  e$weight <- edge.weight.fun(p1 = ew$P.x, p2 = ew$P.y, degree1 = ew$degree.x, degree2 = ew$degree.y, weight = as.numeric(ew$net.weight.temp))
   
   
   ######### write parameters #########
