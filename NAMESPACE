@@ -1,0 +1,16 @@
+export(postgwas, snp2gene.prox, snp2gene.LD, regionalplot, manhattanplot, gwas2network, getInteractions.ppi, getInteractions.domains, getInteractions.GO, removeNeighborSnps, getGenotypes, LDparallel, biomartConfigs, ytracks.regionalplot, gwas2network.plot, getSnpsByWin, getSnpsByRS, bm.id2name, bm.name2id, bm.remapSnps)
+# import(biomaRt)
+# import(genetics)
+# manhattanplot
+import(grid)
+importFrom(gtools, odd, even)
+# regionalplot
+import(lattice)
+importFrom(gdata, trim)
+# regionalplot rare variants
+# importFrom(VariantAnnotation, info, scanVcfHeader, scanVcf, ScanVcfParam)
+# importFrom(gdata, trim)
+# importFrom(GenomicRanges, GRanges, start, end, shift, seqnames, elementMetadata)
+# importFrom(IRanges, IRanges)
+# gwas2network
+# import(igraph)
