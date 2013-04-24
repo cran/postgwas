@@ -3,7 +3,7 @@ closestGenes <- function(snps, genes, mode = "cover", level = 0) {
   # 
   # Args:
   #  snps:         A data frame having columns 'SNP', 'CHR' and BP for reference SNP IDs, chromosome and base position (numeric)
-  #  genes:        A data frame having numeric columns "chromo", "start" and "end" (may have additional columns like name or ID).
+  #  genes:        A data frame having numeric columns "chrnames", "start" and "end" (may have additional columns like name or ID).
   #                May contain additional columns (e.g. gene symbol) which are preserved in the return value.
   #  mode:         can be "cover", "up" or "down" to retrieve the next gene in the named direction. 
   #                "up" means smaller (gene end) base position in comparison to the SNP. 
@@ -34,13 +34,13 @@ closestGenes <- function(snps, genes, mode = "cover", level = 0) {
   if( mode == "up" ) {
     genes <- genes[order(genes$end, na.last = NA), ]             # sort
     genes.idx <- findInterval(snps$BP, genes$end) -level         # for all snps, gives indices in genes.sort where geneend smaller than bp of snp
-    genes.idx[genes.idx <= 0 | genes.idx >= nrow(genes)] <- NA   # out of bounds indices to NA
+    genes.idx[genes.idx <= 0 | genes.idx > nrow(genes)] <- NA    # out of bounds indices to NA
     res <- genes[genes.idx, ]
 	
   } else if( mode == "down" ) {
     genes <- genes[order(genes$start, na.last = NA), ]           # sort
     genes.idx <- findInterval(snps$BP, genes$start) +level +1    # for all snps, gives indices in genes.sort where genestart larger than bp of snp
-    genes.idx[genes.idx <= 0 | genes.idx >= nrow(genes)] <- NA   # out of bounds indices to NA
+    genes.idx[genes.idx <= 0 | genes.idx > nrow(genes)] <- NA    # out of bounds indices to NA
     res <- genes[genes.idx, ]
 	
   } else if( mode == "cover" ) {
@@ -50,14 +50,16 @@ closestGenes <- function(snps, genes, mode = "cover", level = 0) {
       function(snp.bp) {
         cover.cands <- genes[genes$start < snp.bp & genes$end > snp.bp, ]
         if(nrow(cover.cands) > 1) {
-          return(cover.cands[which.min(cover.cands$start + cover.cands$end - 2 * snp.bp), ])
+          # order by average dist from SNP
+          cover.cands <- cover.cands[order(cover.cands$start + cover.cands$end - 2 * snp.bp), ]
+          return(cover.cands[level +1, ])
         } else {
-          return(cover.cands[1, ]) # returns NAs when nrow(cover.cands) == 0
+          return(cover.cands[level +1, ]) # returns NAs when nrow(cover.cands) == 0
         }
       }
     ))
     
-    # this is the fast but incorrect version
+    # this is the fast but incorrect version for cover
 #    genes <- genes[order(genes$start, na.last = NA), ]           # sort
 #    genes.idx <- findInterval(snps$BP, genes$start) -level       # for all snps, gives indices in genes.sort where genestart smaller than bp of snp
 #    genes.idx[genes.idx <= 0 | genes.idx >= nrow(genes)] <- NA   # out of bounds indices to NA

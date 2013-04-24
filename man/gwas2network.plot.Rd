@@ -5,13 +5,14 @@
 
 \description{
 This is a replacement for the default plot function of igraph. It mainly offers simplified scaling properties, scaling the size of the medium proportional to the graph size and maintaining all graph elements at proper size. 
-Compared to the default igraph plot function, it is also truncated in functionality and slower. 
+Compared to the default igraph plot function, it is truncated in other generic functionality and a bit slower. 
 }
 
 \usage{
 gwas2network.plot(
   g = g,
   layout = layout.fruchterman.reingold(g, area = vcount(g)^3),
+  legend.autolayout = TRUE, 
   vertex.to.edge.space = 1.3, 
   device = pdf, 
   ...
@@ -20,7 +21,8 @@ gwas2network.plot(
 
 \arguments{
   \item{g}{An igraph graph object. Requires vertex attibutes 'weight', 'color' and 'label' and the edge attribute 'color'. Can contain additional attributes (see Details section).}
-  \item{layout}{matrix. Vertex x and y positions are lsited here, refer to the igraph layout functions for detailed information, e.g. the 'Value' section of \link[igraph]{layout.fruchterman.reingold}.}
+  \item{layout}{matrix. Vertex x and y positions are listed here, refer to the igraph layout functions for detailed information, e.g. the 'Value' section of \link[igraph]{layout.fruchterman.reingold}.}
+  \item{legend.autolayout}{boolean. When TRUE, creates a separate area and assigns all legend vertices to it. Legend vertices are defined as having the (sub)string 'postgwas' in their name. When FALSE, plots all vertices to the original coordinates given by the 'layout' argument.}
   \item{vertex.to.edge.space}{numeric. The space between vertices and their connecting edges, it is normally visually appealing to have a small gap between vertex and edge.}
   \item{device}{function. A device function that directs the plot data to a device, e.g. \code{pdf}, \code{X11}, ... }
   \item{...}{These additional parameters are passed to the \code{device} function. Can for example be \code{file} to specify a filename, see the appropriate device function documentation for valid arguments. Can also specify an argument 'v.weight.max' for vertex size normalization (the largest size will then correspond to v.weight.max instead of the maximum weight in the given graph).}

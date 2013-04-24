@@ -1,4 +1,4 @@
-export(postgwas, snp2gene.prox, snp2gene.LD, regionalplot, manhattanplot, gwas2network, getInteractions.ppi, getInteractions.domains, getInteractions.GO, removeNeighborSnps, getGenotypes, LDparallel, biomartConfigs, ytracks.regionalplot, gwas2network.plot, getSnpsByWin, getSnpsByRS, bm.id2name, bm.name2id, bm.remapSnps)
+export(postgwas, snp2gene.prox, snp2gene.LD, gene2p, GATES, SpD, gwasGOenrich, regionalplot, manhattanplot, gwas2network, getInteractions.path, getInteractions.proteincomplex, getInteractions.domains, getInteractions.GO, removeNeighborSnps, getGenotypes, LDparallel, biomartConfigs, ytracks.regionalplot, gwas2network.plot, getSnpsByWin, getSnpsByRS, bm.id2name, bm.name2id, bm.remapSnps, getPostgwasBuffer, setPostgwasBuffer, clearPostgwasBuffer)
 # import(biomaRt)
 # import(genetics)
 # manhattanplot
@@ -7,3 +7,4 @@ importFrom(gtools, odd, even)
 # regionalplot
 import(lattice)
 importFrom(gdata, trim)
+importFrom(coin, wilcox_test)

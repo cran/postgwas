@@ -29,7 +29,7 @@ bm.name2id(
   \item{filter.names}{Either a vector containing gene names, or a data frame with an appropriate colum. The type of namess should match the biomart config field gene$filter$name.}
   \item{config}{A list containing values that are needed for biomaRt connection and data retrieval. See \code{\link{biomartConfigs}}.}
   \item{ds}{Optionally, a biomart connection object for re-use scenarios to prevent connection overhead.}
-  \item{use.buffer}{Uses the variable postgwas.buffer.genes for annotation when it exists and seems to contain valid biomart data. Does not write that variable.}
+  \item{use.buffer}{Uses the buffer variable \code{genes} for annotation when it exists and contains valid data in biomart format. See \code{\link{postgwasBuffer}} for more information on buffer variables. Does not write that variable.}
 }
 
 \details{

@@ -5,7 +5,7 @@
 \title{Calculate Pairwise Linkage Disequilibrium with Multiple Threads}
 
 \description{
-Performs calculation of pairwise linkage disequilibrium for a number of SNPs on multiple CPU cores. 
+Performs calculation of pairwise linkage disequilibrium for a number of SNPs on multiple CPU cores using the package \code{genetics}. This function is deprecated, used of the \code{\link{r2fast}} function of GenABEL is recommended (and much faster).  
 }
 
 \usage{
@@ -36,27 +36,21 @@ A matrix containing r-square values (numeric datatype). Row and column names mat
   \url{http://cran.r-project.org/web/packages/genetics/index.html}
 }
 
-\seealso{
-  \code{\link{LD}}
-}
-
 \examples{
 
-# filenames of ped/map files with genotype data
-pedmap.files <- system.file(
-                  "extdata", 
-                  c("example.map", "example.ped"), 
-                  package = "postgwas"
-                )
 genotypes <- getGenotypes(
                snps = c("rs13240", "rs2479", "rs8411", "rs35681"), 
-               map = pedmap.files[1], 
-               ped = pedmap.files[2]
-              )
-if(any(installed.packages()[, "Package"] == "multicore")) {
+               gts.source = system.file("extdata", "example.gwaa", package = "postgwas"), 
+               return.genotypes = TRUE 
+             )
+if(any(installed.packages()[, "Package"] == "parallel")) {
   LDparallel(genotypes)
 } else {
-  cat("Package multicore not installed, cannot run example.\n")
+  cat("Package 'parallel' not installed, cannot run example.\n")
+}
+\dontshow{
+  # cleanup
+  rm(genotypes)
 }
 }
 

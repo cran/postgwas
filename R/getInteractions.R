@@ -1,136 +1,260 @@
-getInteractions.ppi <- function(
-                         filter.ids = c(), 
-                         additionalIdentifierTypes = c("OFFICIAL_SYMBOL", "ENTREZ_GENE", "ENSEMBL", "SWISSPROT"), 
-                         taxId = 9606,
-                         includeInteractors = FALSE, 
-                         sourceDatabaseList = c("BioGRID", "INTACT", "MINT", "DIP"), 
-                         toFile = "postgwas.interaction.download"
-                   ) {
+## returns a data frame "geneid.x", "geneid.y", "label"
+#getInteractions <- function(
+#    filter.ids,
+#    biomart.config = biomartConfigs$hsapiens,
+#    path = TRUE, 
+#    ppi = TRUE, 
+#    domains = TRUE, 
+#    GO = FALSE,
+#    GOpackagename = "org.Hs.eg.db",
+#    toFile = "postgwas.interaction.download"
+#) {
+#
+#  if(missing(filter.ids) || is.null(filter.ids) || !is.vector(filter.ids))
+#    stop("Argument 'filter.ids' has to be a non-NULL vector.\n")
+#  filter.ids <- as.vector(filter.ids)
+#  
+#  net.all <- data.frame(geneid.x = 1, geneid.y = 1, label = 1)[-1, ] # empty data frame
+#  
+#  if(path) {
+#    net <- getInteractions.path(filter.ids = filter.ids, biomart.config = biomart.config, toFile = NULL)
+#    net$label <- "path"
+#    net.all <- rbind(net.all, net)
+#  }
+#  
+#  if(ppi) {
+#    net <- getInteractions.proteincomplex(filter.ids = filter.ids, biomart.config = biomart.config, toFile = NULL)
+#    net$label <- "ppi"
+#    net.all <- rbind(net.all, net)
+#  }
+#    
+#  if(domains) {
+#    net <- getInteractions.domains(filter.ids = filter.ids, biomart.config = biomart.config, filter.type = biomart.config$gene$filter$id, toFile = NULL)
+#    net$label <- "domain"
+#    net.all <- rbind(net.all, net[, c("geneid.x", "geneid.y", "label")])
+#  }
+#  
+#  if(GO) {
+#    message("Detecting shared GO term architecture...")
+#    if(GOpackagename)
+#      # returns a data frame "geneid.x", "geneid.y", "weight"
+#      net <- getInteractions.GO(
+#          filter.ids = filter.ids, 
+#          toFile = NULL
+#      )
+#    net$label <- "GO"
+#    net.all <- rbind(net.all, net[, c("geneid.x", "geneid.y", "label")])
+#  }
+#  
+#  if(!is.null(toFile) && toFile != "")
+#    write.table(net.all, toFile, sep = "\t", col.names = TRUE, row.names = FALSE)
+#  
+#  return(net.all)
+#}
 
-  if(!is.null(filter.ids) && is.vector(filter.ids) && length(filter.ids) > 0) {
-    filter.ids <- unique(as.vector(filter.ids))
-    if(is.null(additionalIdentifierTypes))
-      stop("Argument 'additionalIdentifierTypes' has to be set\n")
-    if(is.null(includeInteractors))
-      stop("Argument 'includeInteractors' has to be set\n")
-    filterquery <- paste(
-                     "geneList=", 
-                     paste(filter.ids, collapse = "|"), "&", 
-                     "additionalIdentifierTypes=",
-                     paste(additionalIdentifierTypes, collapse = "|"), "&",
-                     "includeInteractorInteractions=FALSE", "&", 
-                     "includeInteractors=", includeInteractors,
-                     sep = ""
-                   )
-    # for many filter ids, we have to divide the queries (URL length cap)
-    # when we do that, including interactor interactions is invalid (this feature is disabled anyways)
-    if(length(filter.ids) > 500) {
-      res <- list()
-      filter.ids.part <- lapply(
-                           seq(1, length(filter.ids), by = 500),  # the split points
-                           function(split)
-                             as.vector(na.omit(filter.ids[split:(split+499)]))
-                         )
-      res <- lapply(
-               filter.ids.part, 
-               function(part) 
-                 getInteractions.ppi(
-                   filter.ids = part,
-                   taxId = taxId,
-                   additionalIdentifierTypes = additionalIdentifierTypes, 
-                   includeInteractors = includeInteractors, 
-                   sourceDatabaseList = sourceDatabaseList, 
-                   toFile = NULL
-                 ) 
-             )
-      return(unique(list2df(res)))
-    }
-  } else {
-    warning("Argument 'filter.ids' is not a vector with length > 0. Downloading all interactions.\n")
-    filterquery = NULL
-  }
 
-  # determine number of results to retrieve - there is a cap of 10000 per query
-  cat("Determining the number of interactions to download...\n")
-  url.rows <- url(paste(
-                  "http://webservice.thebiogrid.org/resources/interactions?", 
-                  "selfInteractionsExcluded=true&format=count&", 
-                  filterquery, "&", 
-                  "taxId=",
-                  taxId,
-                  sep = ""
-                ))
 
-  rows <- as.numeric(readLines(url.rows, warn = FALSE))
-  close(url.rows)
+# returns a data frame "geneid.x", "geneid.y", "label"
+getInteractions.path <- function(
+    filter.ids, 
+    biomart.config = biomartConfigs$hsapiens,
+    ds = bm.init.path(biomart.config), 
+    toFile = "postgwas.interaction.download"
+) {
   
-  if(rows == 0)
-    return(data.frame(genename.x = "", genename.y = "")[-1, ])
+  if(missing(filter.ids) || is.null(filter.ids) || !is.vector(filter.ids))
+    stop("Argument 'filter.ids' has to be a non-NULL vector.\n")
+  filter.ids <- as.vector(filter.ids)
   
-  queries.data <- paste(
-                    "http://webservice.thebiogrid.org/resources/interactions?",
-                    "selfInteractionsExcluded=true&format=tab1&",
-                    filterquery, "&",
-                    "sourceDatabaseList=",
-                    paste(sourceDatabaseList, collapse = "|"), 
-                    "&taxId=",
-                    taxId, 
-                    "&start=",
-                    gsub(" ", "", format(0:(rows/10000) * 10000, scientific = FALSE)), 
-                    sep = ""
-                  )
-  queries.data[1] <- paste(queries.data[1], "includeHeader=true", sep = "&")
-  urls.data <- lapply(queries.data, url)
-
-  # paste together the repeated retrieves and download
-  cat(paste("Downloading", rows, "interactions"))
-  res <- lapply(
-           urls.data, 
-           function(url) {
-             cat(".")
-             dl <- list2df(strsplit(readLines(url, warn = FALSE), split = "\t", fixed = TRUE))
-             close(url)
-             return(dl)
-           }
-         )
-  cat("\n")
-  res <- as.data.frame(list2df(res))
-  colnames(res) <- as.matrix(res)[1, ]
-  res <- res[-1, ]  #remove header
-
-  if(!is.null(toFile) && toFile != "")
-    write.table(res, toFile, sep = "\t", col.names = TRUE, row.names = FALSE)
-
-  return(
-    data.frame(
-      genename.x = res[, "OFFICIAL_SYMBOL_A"], 
-      genename.y = res[, "OFFICIAL_SYMBOL_B"], 
-      stringsAsFactors = FALSE
-    )
+  dat <- getBM(
+      attributes = c(biomart.config$path$attr$pathid, biomart.config$path$attr$pathname, biomart.config$path$attr$geneid), 
+      filters = biomart.config$path$filter$geneid, 
+      values = filter.ids, 
+      mart = ds
   )
+  colnames(dat)[3] <- c("geneid")
+  
+  message("Constructing network...")
+  mdat <- merge(dat, dat, by = biomart.config$path$attr$pathid)
+  
+  # proper column order and labels for gwas2network
+  network <- mdat[, c("geneid.x", "geneid.y", paste(biomart.config$path$attr$pathname, "x", sep = "."))]
+  colnames(network)[3] <- "label"
+  
+  if(!is.null(toFile) && toFile != "")
+    write.table(network, toFile, sep = "\t", col.names = TRUE, row.names = FALSE)
+  
+  return(network)
 }
 
+
+
+# returns a data frame "geneid.x", "geneid.y", "label"
+getInteractions.proteincomplex <- function(
+    filter.ids, 
+    biomart.config = biomartConfigs$hsapiens,
+    ds = bm.init.proteincomplex(biomart.config), 
+    toFile = "postgwas.interaction.download"
+) {
+  
+  if(missing(filter.ids) || is.null(filter.ids) || !is.vector(filter.ids))
+    stop("Argument 'filter.ids' has to be a non-NULL vector.\n")
+  filter.ids <- as.vector(filter.ids)
+  
+  dat <- getBM(
+      attributes = c(biomart.config$proteincomplex$attr$complexid, biomart.config$proteincomplex$attr$complexname, biomart.config$proteincomplex$attr$geneid), 
+      filters = biomart.config$proteincomplex$filter$geneid, 
+      values = filter.ids, 
+      mart = ds
+  )
+  colnames(dat)[3] <- c("geneid")
+  
+  message("Constructing network...")
+  mdat <- merge(dat, dat, by = biomart.config$proteincomplex$attr$complexid)
+  
+  # proper column order and labels for gwas2network
+  network <- mdat[, c("geneid.x", "geneid.y", paste(biomart.config$proteincomplex$attr$complexname, "x", sep = "."))]
+  colnames(network)[3] <- "label"
+  
+  if(!is.null(toFile) && toFile != "")
+    write.table(network, toFile, sep = "\t", col.names = TRUE, row.names = FALSE)
+  
+  return(network)
+}
+
+# legacy biogrid download code
+#getInteractions.ppi <- function(
+#                         filter.ids = c(), 
+#                         additionalIdentifierTypes = c("OFFICIAL_SYMBOL", "ENTREZ_GENE", "ENSEMBL", "SWISSPROT"), 
+#                         taxId = 9606,
+#                         includeInteractors = FALSE, 
+#                         sourceDatabaseList = c("BioGRID", "INTACT", "MINT", "DIP"), 
+#                         toFile = "postgwas.interaction.download"
+#                   ) {
+#
+#  if(!is.null(filter.ids) && is.vector(filter.ids) && length(filter.ids) > 0) {
+#    filter.ids <- unique(as.vector(filter.ids))
+#    if(is.null(additionalIdentifierTypes))
+#      stop("Argument 'additionalIdentifierTypes' has to be set\n")
+#    if(is.null(includeInteractors))
+#      stop("Argument 'includeInteractors' has to be set\n")
+#    filterquery <- paste(
+#                     "geneList=", 
+#                     paste(filter.ids, collapse = "|"), "&", 
+#                     "additionalIdentifierTypes=",
+#                     paste(additionalIdentifierTypes, collapse = "|"), "&",
+#                     "includeInteractorInteractions=FALSE", "&", 
+#                     "includeInteractors=", includeInteractors,
+#                     sep = ""
+#                   )
+#    # for many filter ids, we have to divide the queries (URL length cap)
+#    # when we do that, including interactor interactions is invalid (this feature is disabled anyways)
+#    if(length(filter.ids) > 500) {
+#      res <- list()
+#      filter.ids.part <- lapply(
+#                           seq(1, length(filter.ids), by = 500),  # the split points
+#                           function(split)
+#                             as.vector(na.omit(filter.ids[split:(split+499)]))
+#                         )
+#      res <- lapply(
+#               filter.ids.part, 
+#               function(part) 
+#                 getInteractions.ppi(
+#                   filter.ids = part,
+#                   taxId = taxId,
+#                   additionalIdentifierTypes = additionalIdentifierTypes, 
+#                   includeInteractors = includeInteractors, 
+#                   sourceDatabaseList = sourceDatabaseList, 
+#                   toFile = NULL
+#                 ) 
+#             )
+#      return(unique(list2df(res)))
+#    }
+#  } else {
+#    warning("Argument 'filter.ids' is not a vector with length > 0. Downloading all interactions.\n")
+#    filterquery = NULL
+#  }
+#
+#  # determine number of results to retrieve - there is a cap of 10000 per query
+#  message("Determining the number of interactions to download...")
+#  url.rows <- url(paste(
+#                  "http://webservice.thebiogrid.org/resources/interactions?", 
+#                  "selfInteractionsExcluded=true&format=count&", 
+#                  filterquery, "&", 
+#                  "taxId=",
+#                  taxId,
+#                  sep = ""
+#                ))
+#
+#  rows <- as.numeric(readLines(url.rows, warn = FALSE))
+#  close(url.rows)
+#  
+#  if(rows == 0)
+#    return(data.frame(genename.x = "", genename.y = "")[-1, ])
+#  
+#  queries.data <- paste(
+#                    "http://webservice.thebiogrid.org/resources/interactions?",
+#                    "selfInteractionsExcluded=true&format=tab1&",
+#                    filterquery, "&",
+#                    "sourceDatabaseList=",
+#                    paste(sourceDatabaseList, collapse = "|"), 
+#                    "&taxId=",
+#                    taxId, 
+#                    "&start=",
+#                    gsub(" ", "", format(0:(rows/10000) * 10000, scientific = FALSE)), 
+#                    sep = ""
+#                  )
+#  queries.data[1] <- paste(queries.data[1], "includeHeader=true", sep = "&")
+#  urls.data <- lapply(queries.data, url)
+#
+#  # paste together the repeated retrieves and download
+#  message(paste("Downloading", rows, "interactions"))
+#  res <- lapply(
+#           urls.data, 
+#           function(url) {
+#             message(".")
+#             dl <- list2df(strsplit(readLines(url, warn = FALSE), split = "\t", fixed = TRUE))
+#             close(url)
+#             return(dl)
+#           }
+#         )
+#  message("")
+#  res <- as.data.frame(list2df(res))
+#  colnames(res) <- as.matrix(res)[1, ]
+#  res <- res[-1, ]  #remove header
+#
+#  if(!is.null(toFile) && toFile != "")
+#    write.table(res, toFile, sep = "\t", col.names = TRUE, row.names = FALSE)
+#
+#  return(
+#    data.frame(
+#      genename.x = res[, "OFFICIAL_SYMBOL_A"], 
+#      genename.y = res[, "OFFICIAL_SYMBOL_B"], 
+#      stringsAsFactors = FALSE
+#    )
+#  )
+#}
 
 
 
 # returns a data frame "genename.x", "genename.y", "geneid.x", "geneid.y", "domain.name"
 getInteractions.domains <- function(
-                             filter.ids = "", 
-                             biomart.config = biomartConfigs$hsapiens,
-                             filter.type = biomartConfigs$hsapiens$gene$filter$name,
-                             ds = bm.init.genes(biomart.config),
-                             min.occurence = NULL, 
-                             max.occurence = length(filter.ids) / (logb(length(filter.ids), 3) +1),
-                             toFile = "postgwas.interaction.download"
-                           ) {
+    filter.ids, 
+    biomart.config = biomartConfigs$hsapiens,
+    filter.type = biomartConfigs$hsapiens$gene$filter$name,
+    ds = bm.init.genes(biomart.config),
+    min.occurence = NULL, 
+    max.occurence = if(length(filter.ids) < 20) NULL else length(filter.ids) / (logb(length(filter.ids), 3) +1),
+    toFile = "postgwas.interaction.download"
+) {
   
-  if(is.null(filter.ids) || !is.vector(filter.ids))
-    stop("Argument 'filter' has to be a non-NULL vector.\n")
+  if(missing(filter.ids) || is.null(filter.ids) || !is.vector(filter.ids))
+    stop("Argument 'filter.ids' has to be a non-NULL vector.\n")
   
   filter.ids <- as.vector(filter.ids)
   
   if(is.null(filter.type))
-    stop("Argument 'filter' has to be set.\n")
+    stop("Argument 'filter.type' has to be set.\n")
   
   dom <- bm.genes.domains(
            config = biomart.config, 
@@ -165,12 +289,13 @@ getInteractions.domains <- function(
 
 
 # returns a data frame "geneid.x", "geneid.y", "weight"
+utils::globalVariables("GOSimEnv")
 getInteractions.GO <- function(
                              filter.ids, 
                              GOpackagename = "org.Hs.eg.db", 
                              ontology = "BP", 
-                             similarity.type = "max",
-                             toFile = "postgwas.interaction.download"
+                             toFile = "postgwas.interaction.download", 
+                             ...
                            ) {
   
   if(!"GOSim" %in% names(installed.packages()[, 'Package'])) {
@@ -185,27 +310,32 @@ getInteractions.GO <- function(
   }
   suppressPackageStartupMessages(require(GOSim, quietly = TRUE))
 
-  if(is.null(filter.ids) || !is.vector(filter.ids) || length(filter.ids) <= 0)
-    stop("Argument 'filter.ids' has to be set to a nonempty vector.\n")
-
+  if(missing(filter.ids) || is.null(filter.ids) || !is.vector(filter.ids) || length(filter.ids) <= 0)
+    stop("Argument 'filter.ids' has to be a non-NULL vector of entrez geneids.\n")
+  
   # load proper GO organism data
   success <- do.call(library, list(package = GOpackagename, logical.return = TRUE))
   if(!success)
-	stop("The GeneOnotology annotation package supplied in argument 'GOpackagename' is not installed or cannot be loaded.\n")
-  if(!exists("GOSimEnv")) GOSim:::initialize()
-  # reinit GOSim when intitalized with a different GO annotation package
+	  stop("The GeneOnotology annotation package supplied in argument 'GOpackagename' is not installed or cannot be loaded.\n")
+  
+  # init GOSim with the selected GO organism annotation package
   org.name.new <- get(grep("ORGANISM", ls(paste("package", GOpackagename, sep = ":")), value = TRUE)[1])
   org.dat.new <- get(grep("GO", ls(paste("package", GOpackagename, sep = ":")), value = TRUE)[1])
-  if(sub("human", "Homo sapiens", GOSimEnv$organism) == org.name.new) {
-	# everything is already preloaded
+  if(!exists("GOSimEnv")) {
+    setEvidenceLevel(organism = org.name.new, gomap = org.dat.new)
   } else {
-	setEvidenceLevel(organism = org.name.new, gomap = org.dat.new)
-	calcICs(path.package("GOSim"))
-	setOntology(ontology, DIR = path.package("GOSim"))
+    if(sub("human", "Homo sapiens", GOSimEnv$organism) != org.name.new)
+      setEvidenceLevel(organism = org.name.new, gomap = org.dat.new)
   }
-
-  cat("Starting gene similyrity calculation with GOSim (this can take a while)...\n")
-  simmatrix <- getGeneSim(as.vector(filter.ids), similarity = similarity.type)
+  if(file.access(paste(path.package("GOSim"), "/ICs", ontology, org.name.new, "all.rda", sep = "")) == -1) {
+    setOntology(ontology, loadIC = FALSE)
+    calcICs(path.package("GOSim"))
+  }
+  setOntology(ontology, DIR = path.package("GOSim"))
+  
+  
+  message("Starting gene similarity calculation with GOSim (this can take a while)...")
+  simmatrix <- getGeneSim(as.vector(filter.ids), ...)
   
   res <- list2df(lapply(
     colnames(simmatrix), 
@@ -216,6 +346,8 @@ getInteractions.GO <- function(
         weight = simmatrix[, colname]
         )
     ))
+
+  res <- res[res$weight > 0, ]
   
   if(!is.null(toFile) && toFile != "")
     write.table(res, toFile, sep = "\t", col.names = TRUE, row.names = FALSE)

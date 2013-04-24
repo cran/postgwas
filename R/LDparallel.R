@@ -1,7 +1,11 @@
 LDparallel <- function(g, num.processes, ...) {
 	
-	require(parallel) 
-	
+	require(parallel)
+  if(!'genetics' %in% installed.packages()[, 'Package'])
+    stop("getGenotypes: Package 'genetics' has to be installed for parallelized LD calculation")
+  else 
+    require(genetics)
+  
 	if(missing(num.processes))
 		num.processes <- detectCores()
 	

@@ -1,33 +1,40 @@
 snp2gene <- function(
               snps, 
-              by.ld = FALSE, 
+              gts.source = NULL, 
               biomart.config = biomartConfigs$hsapiens, 
               use.buffer = FALSE,
               by.genename = TRUE,
               level = -1, 
+              ld.win = 1000000, 
               print.format = FALSE, 
-              run.parallel = FALSE, 
-              ... 
-            ) {
-
-  if(!all(names(list(...)) %in% c("map", "ped")))
-    stop("Unknown parameter! Check argument list.\n")
+              cores = 1
+  ) {
+    
+  if(is.null(biomart.config) || !is.list(biomart.config))
+    stop("Argument 'biomart.config' has to be a list")
   
   if(missing(snps)) 
     stop("Function parameter 'snps' has not been specified\n")
 
+  if(is.null(cores) || !is.numeric(cores) || is.na(cores) || cores < 1) 
+    stop("Function parameter 'cores' has to be an integer > 0\n")
+  
   if(!is.data.frame(snps) || nrow(snps) < 1) 
     stop("Function parameter snps is not a data frame or empty\n")
 
   if(is.null(snps$SNP))
     stop("Function parameter 'snps' does not contain 'SNP' column\n")
-
+  
   snps.forbidden.columns <- c("CHR.original", "BP.original", "BP.mapped", "CHR.mapped", "chrname", "chromo", "direction", "genename", "geneid", "start", "end")
   if(any(colnames(snps) %in% snps.forbidden.columns))
     stop(paste("Function parameter 'snps' may not contain one of the columns", paste(snps.forbidden.columns, collapse = "', '"), "\n", sep = " '"))
 
-  if( is.null(by.ld) || (by.ld != F && by.ld != T) )
-    stop("Function parameter by.ld can only take the values TRUE or FALSE\n")
+  # when gts.source null, annotate by prox, else by LD
+  if(!is.null(gts.source)) {
+    parseGtsSourceArg(gts.source) # just checks the argument
+    if(is.null(ld.win) || !is.numeric(ld.win) || length(ld.win) != 1)
+      stop("Argument 'ld.win' is invalid.")
+  }
   
   if(is.null(by.genename))
     by.genename <- TRUE
@@ -45,7 +52,7 @@ snp2gene <- function(
   delayedAssign("snpds", bm.init.snps(biomart.config))
   delayedAssign("geneds", bm.init.genes(biomart.config))
 
-  cat("Processing input data...\n")
+  message("Processing input data...")
   snps.bm <- bm.snps(biomart.config, snpds, snps$SNP, use.buffer)
   names(snps.bm) <- c("refsnp_id", "CHR", "BP")   
   # merge will sort the data frame, SNPs that do not match with ensembl are removed
@@ -63,13 +70,16 @@ snp2gene <- function(
   if(nrow(snps) < 1)
     stop("No SNPs left after biomart mapping. Aborting.\n")
 
-  cat("Calculating closest genes...\n")
-  if(by.ld) {
+  message("Calculating closest genes...")
+  
+  # when gts.source not null, annoate by LD
+  if(!is.null(gts.source)) {
 
-    ld <- ldGenes(snps, genes, run.parallel, ...)
+    ld <- ldGenes(snps = snps, genes = genes, gts.source = gts.source, ld.win = ld.win, cores = cores)
     ld <- ld[!is.na(ld$start), ]
     res <- merge(snps, ld, by = "SNP")
     res$chrname <- NULL
+    res$CHR.mapped <- NULL
     return(res)
 
   } else {
@@ -94,8 +104,8 @@ snp2gene <- function(
       # can contain NA which is invalid in a selection vector. When down is NA, set TRUE to select up.
       replace.up[is.na(replace.up)] <- is.na(down.all$start)[is.na(replace.up)]
       replace.down <- check.idx & !replace.up
-      res[replace.up, ] <- up.all[replace.up, ]
-      res[replace.down, ] <- down.all[replace.down, ]
+      res[replace.up, ] <- vectorElements(up.all[replace.up, ])
+      res[replace.down, ] <- vectorElements(down.all[replace.down, ])
       
       # remove columns with both genename and geneid NA (see closest genes function)
       res <- res[!(is.na(res$geneid) & is.na(res$genename)), ]
@@ -113,7 +123,7 @@ snp2gene <- function(
       while(TRUE) {
         level <- level +1
 
-        cat(paste("Calculating the", level+1, "-th closest genes (search for overlap)...\n"))
+        message(paste("Calculating the", level+1, "-th closest genes (search for overlap)..."))
         cover <- closestGenes(snps, genes, "cover", level)
         up    <- closestGenes(snps, genes, "up", level)
         down  <- closestGenes(snps, genes, "down", level)
@@ -133,7 +143,7 @@ snp2gene <- function(
       }
     }
 
-    cat("Formatting results...\n")
+    message("Formatting results...")
     if(print.format) {
       res <- data.frame(
                 snps, 
@@ -155,8 +165,12 @@ snp2gene <- function(
 
 }
 
-snp2gene.LD <- function(snps, biomart.config = biomartConfigs$hsapiens, use.buffer = FALSE, by.genename = TRUE, run.parallel = FALSE, ...) 
-  snp2gene(snps = snps, biomart.config = biomart.config, use.buffer = use.buffer, by.genename = by.genename, run.parallel = run.parallel, by.ld = TRUE, ...)
+snp2gene.LD <- function(snps, gts.source = 2, ld.win = 1000000, biomart.config = biomartConfigs$hsapiens, use.buffer = FALSE, by.genename = TRUE, cores = 1) {
+  if(!is.null(gts.source))
+    snp2gene(snps = snps, gts.source = gts.source, ld.win = ld.win, biomart.config = biomart.config, use.buffer = use.buffer, by.genename = by.genename, cores = cores)
+  else
+    stop("snp2gene.LD: Argument 'gts.source' has to be set.")
+} 
 
 snp2gene.prox <- function(snps, level = -1, biomart.config = biomartConfigs$hsapiens, use.buffer = FALSE, by.genename = TRUE, print.format = FALSE)
   snp2gene(snps, print.format = print.format , biomart.config = biomart.config, use.buffer = use.buffer, by.genename = by.genename, level = level)

@@ -8,7 +8,7 @@ data.regionalplot.genes <- function(
   use.buffer
 ) {
 
-  cat("Retrieving gene (and exon) information...\n")
+  message("Retrieving gene (and exon) information...")
   # get genes for all regions in a single rush
   genes.all <- bm.genes.regionalplot(
                     biomart.config, 

@@ -30,7 +30,7 @@ imputeRemappedPositions <- function(snps, remove.unmappable = FALSE) {
     return(na.omit(snps))
   }
   
-  cat(paste("Position of", length(snps.idx.fill), "SNPs are unkown in biomart or source data. Trying to estimate by neighbor offset.\n"))
+  message(paste("Position of", length(snps.idx.fill), "SNPs are unkown in biomart or source data. Trying to estimate by neighbor offset."))
   
   # this code finds for each NA-index the next index that is not NA
   snps.idx.next.ok <- sapply(

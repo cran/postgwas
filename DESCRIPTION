@@ -1,12 +1,14 @@
 Package: postgwas
-Version: 1.02
-Date: 2012-03-10
+Version: 1.10
+Date: 2013-04-24
 Title: GWAS Post-Processing Utilities
 Author: Milan Hiersche <mihi@uni-muenster.de>
 Maintainer: Milan Hiersche <mihi@uni-muenster.de>
-Depends: R (>= 2.11.0), biomaRt, genetics, lattice, igraph (>= 0.6-2)
-Suggests: GOSim, parallel, VariantAnnotation
-Imports: gtools, gdata, grid, lattice
+Depends: R (>= 2.11.0), data.table, biomaRt, lattice, GenABEL, igraph
+        (>= 0.6-2)
+Suggests: topGO, GOSim, parallel, VariantAnnotation, Rsamtools,
+        org.Mm.eg.db, xtable, genetics
+Imports: gtools, gdata, grid, coin, lattice, AnnotationDbi
 Description: Facilitates annotation of genes to SNPs using proximity or
         LD information, creates regional and manhattan plots and
         contains an interaction network analysis tool for GWAS result
@@ -15,6 +17,8 @@ Description: Facilitates annotation of genes to SNPs using proximity or
 License: GPL (>= 2)
 URL: http://www.r-project.org
 BugReports: mihi@uni-muenster.de
-Packaged: 2012-11-11 17:01:41 UTC; milan
+BuildVignettes: FALSE
+Packaged: 2013-04-26 13:34:38 UTC; milan
+NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2012-11-11 17:55:36
+Date/Publication: 2013-04-26 17:22:10

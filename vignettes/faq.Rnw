@@ -1,0 +1,57 @@
+\documentclass{article}
+
+\begin{document}
+
+\section*{FAQ on postgwas functions:}
+
+\paragraph{General}
+
+\begin{itemize}
+  \item{
+    \textit{Biomart normally uses the current genome assembly. All my analysis
+    data refers to an older assembly, e.g. working on the mouse genome mm9.
+      How can I configure biomart so that postgwas uses the older mm9 base
+      positions and annotations? 
+    }
+    \\[\baselineskip]
+    For some assemblies, the ensembl biomart offers archive servers (refer to the
+    biomart's documentation). Setting the \emph{host} element of the biomart
+    configuration list will normally do the job. Possibly, some depending element
+    names (attributes, filters, dataset name) might have also changed which needs
+    to be considered. For mm9, an alternative \emph{host} has to be specified and
+    in addition the \emph{mart} name has been changed: 
+    \begin{Sinput}
+    myconfig <- biomartConfigs$mmusculus
+    myconfig$mmusculus$gene$host <- "may2012.archive.ensembl.org"
+    myconfig$mmusculus$gene$mart <- "ENSEMBL_MART_ENSEMBL"
+    myconfig$mmusculus$snp$host <- "may2012.archive.ensembl.org"
+    myconfig$mmusculus$snp$mart <- "ENSEMBL_MART_SNP"
+    \end{Sinput}
+    Setting the argument \emph{biomart.config = myconfig} in the postgwas function
+    used should then use the mm9 configuration. 
+    
+    If it is not possible to change the biomart configuration appropriately, it is
+    always feasible to supply data.frames with gene and SNP positions manually as
+    buffer data. Running the function with use.buffer = TRUE will generate all
+    buffer variables needed, which can then be customized. Refer to the
+    corresponding documentation and examples for further information. 
+  }
+\end{itemize}
+
+
+\paragraph{Snp2gene}
+
+\begin{itemize}
+  \item{
+    \textit{Genotype data does not seem to be recognized from my
+    ped/map files - LD computation between SNPs and genes always shows '0
+    snps'.}
+    \\[\baselineskip]
+    It is necessary that chromsome names in the ped/map files match the
+    chromosome names that are used in the configured biomart. SNPs are first
+    mapped to biomart positions (including chromosome names) and genotypes are
+    subsequently extracted from the ped/map files in dependence of the
+    chromosome names. }
+\end{itemize}
+
+\end{document}

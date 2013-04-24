@@ -39,4 +39,7 @@ On the second level, it contains the configuration itself. i.e. the necessary fi
   # show elements of the new configuration list (genes only)
   myconfig$gene
   
+  # cleanup
+  rm(myconfig)
+  
 }

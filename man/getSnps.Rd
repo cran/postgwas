@@ -6,7 +6,7 @@
 
 \description{
 Gets all SNPs within the specified region either from a mapfile or those available in the HapMap project. 
-Gets all SNPs with position eith from a mapfile or from the HapMap project. 
+Gets all SNPs with position either from a mapfile or from the HapMap project. 
 }
 
 \usage{
@@ -33,7 +33,7 @@ getSnpsByRS(snps, map = NULL, pop.id = 2)
 
 \value{
 byWin: A vector of SNPs
-A vector of SNPs and columns "SNP" and "BP"
+A vector of SNPs and columns "SNP", "CHR" and "BP"
 }
 
 \seealso{
@@ -41,7 +41,11 @@ A vector of SNPs and columns "SNP" and "BP"
 }
 
 \examples{
-map.filename <- system.file("extdata", "example.map", package = "postgwas")
+map.filename <- system.file("extdata", "example.map.xz", package = "postgwas")
 getSnpsByWin(chr = 3, bp.start = 9300000, bp.end = 9500000, map = map.filename)
 getSnpsByRS(snps = c("rs13240", "rs8411"), map = map.filename)
+\dontshow{
+  # cleanup
+  rm(map.filename)
+}
 }

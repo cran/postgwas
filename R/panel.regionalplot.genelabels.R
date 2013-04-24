@@ -84,6 +84,7 @@ panel.regionalplot.genelabels <- function(
       )
     }
 
+
     # gene names
     panel.text( 
       x = genes$mean, 

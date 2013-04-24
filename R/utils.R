@@ -63,7 +63,7 @@ pruneVec <- function(x, max) {
 
 makeBlocks <- function(x, block.count = NULL, block.size = sqrt(length(x))) {
 	# Divides the data (list or vector) into blocks.
-	# Division can be done controlling the number of resulting blocks or the (maximum) size of blocks.
+	# Division can be done controlling the number of resulting blocks or the (maximum) size of blocks. 
 	#
 	# Args:
 	#  x:           A vector or list of data
@@ -77,22 +77,44 @@ makeBlocks <- function(x, block.count = NULL, block.size = sqrt(length(x))) {
 	if(is.null(block.count) && is.null(block.size))
 		stop("Either block.count or block.size has to be specified!")
 	
-	if(!is.null(block.count))
-		blocks <- block.count
-	else
-		blocks <- ceiling(length(x) / block.size)
-	block.dat <- list()
-	
-	for(i in 1:length(x)) {
-		block <- i%%blocks +1 
-		if(length(block.dat) < block)
-			block.dat[[block]] <- x[[i]]
-		else
-			block.dat[[block]] <- c(block.dat[[block]], x[[i]])
-	}
-	return(block.dat)
+	if(!is.null(block.count)) {
+    idx <- rep(1:block.count, length.out = length(x))
+    return(split(x, idx))
+  } else {
+    idx <- ceiling(seq_along(x) / block.size)
+    return(split(x, idx))
+  }
 	
 }
+
+
+# takes a character vector 'sentences'
+# when the number of characters at each element is longer than maxchar, 
+# the spaces in the sentence will be counted and a newline inserted before the median space position
+# returns the converted sentences vector
+splitSentence <- function(sentences, maxchar = 40) {
+  if(length(sentences) < 1 || !is.character(sentences))
+    return(sentences)
+  # linebreak long term labels
+  needs.split <- nchar(sentences) > maxchar
+  splithere <- sapply(
+      gregexpr(" |-", sentences), # gives a list of vectors of space positions in each term name 
+      function(spacepos) {
+        # return the median space position, we will insert a newline there
+        if(length(spacepos) > 0)
+          spacepos[ceiling((length(spacepos)+1)/2)]
+        else
+          NA
+      }
+  )
+  needs.split[is.na(splithere)] <- FALSE
+  sentences[needs.split] <- paste(
+      substr(sentences[needs.split], 1, splithere[needs.split]),
+      substr(sentences[needs.split], splithere[needs.split] +1, nchar(sentences[needs.split])),
+      sep = "\n"
+  )
+  return(sentences)
+} 
 
 
 nextFilename <- function(basename, extension, startcount = 1) {

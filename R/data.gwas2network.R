@@ -1,10 +1,12 @@
+utils::globalVariables(c("gwas2network.genename.x", "gwas2network.genename.y", "weight", ".SD"))
+
+# assert that at execution time, the 'network' varaible has been set in the postgwasBuffer environment with current network data.
 # prepares the vertex and edge data and returns it
 # defines vertex columns marked, gwas, degree, weight, label, label.color and category columns
 # defines edge columns weight, color
 # marked column indicate dual annotations (single association p-value given to several genes)
 data.gwas2network <- function(
   gwas.mapped.genes, 
-  network, 
   geneid.col, 
   prune, 
   remove.superhubs,
@@ -13,63 +15,48 @@ data.gwas2network <- function(
   edge.weight.collapse.fun,
   toFile = TRUE
 ) {
-  
-  cat("Constructing graph...\n")
-  weight.colidx <- which(colnames(network) == "weight")
-  label.colidx <- which(colnames(network) == "label")
-  e <- vectorElements(na.omit(network[, c(1, 2, label.colidx, weight.colidx)]))
-  e <- as.data.frame(lapply(e, as.character))
-  e[, 1] <- toupper(e[, 1])
-  e[, 2] <- toupper(e[, 2])
+
   gwas.mapped.genes[, geneid.col] <- as.vector(toupper(gwas.mapped.genes[, geneid.col]))
   genes.gwas <- unique(as.vector(gwas.mapped.genes[, geneid.col]))
   
-  if(nrow(e) < 1)
-    stop("Network has no edges!\n")
-
-  # normalize so that lexicographically smaller gene names are in column 1
-  e <- vectorElements(as.data.frame(lexsortColumns(e, 1, 2)))
-
+  # get a local copy of the (readily processed) network data
+  e <- get("network", envir = postgwasBuffer)
+  
   if(!is.null(prune)) {
-    cat(paste("Reducing network to", prune, "interactors\n"))
+    message(paste("Reducing network to", prune, "interactors"))
     if(prune == "gwasonly") {
       e <- e[e[, 1] %in% genes.gwas & e[, 2] %in% genes.gwas, ]
     }
     if(prune %in% c("connected", "shared")) {
       e <- e[e[, 1] %in% genes.gwas | e[, 2] %in% genes.gwas, ]
     }
-    # for shared pruning, edges must be unique - we do that later
+    # for shared pruning, edges have to be unique - we do that later
     if(nrow(e) < 1)
       stop("Network has no edges after pruning!\n")
   }
   
   # make edges unique
-  cat("Searching for duplicate edges and collapsing these to single edges (if existing)...\n")
-  cat("Collapsed edges use the mean of the original weights. Labels are being joined together.\n")
+  message("Searching for duplicate edges (if existing) and collapsing these to single edges: ")
+  colnames(e)[1:2] <- c("gwas2network.genename.x", "gwas2network.genename.y")
+  e$weight <- as.numeric(as.vector(e$weight))
+  e <- data.table(e)
+  setkey(e, gwas2network.genename.x, gwas2network.genename.y)
   
-  e <- list2df(by(
-    e, 
-    factor(paste(e[, 1], e[ ,2], ",")), 
-    function(df) {
-      single <- df[1, ]
-      if(nrow(df) > 1) {
-        if(!is.null(single$label)) {
-          if(length(unique(df$label)) > 3) {
-            single$label <- "> 3 labels"
-          } else {
-            single$label <- paste(unique(df$label), collapse = " / ")
-          }
-          single$weight <- edge.weight.collapse.fun(as.numeric(as.vector(df$weight)), df$label)
-        } else {
-          single$weight <- edge.weight.collapse.fun(as.numeric(as.vector(df$weight)), NULL)
-        }
-      }
-      return(single)
-    },
-    simplify = FALSE
-  ))
-  e <- e[!duplicated(e), ]  # we never know...
+  message("Collapsing weights (mean by default) ... ")
+  e <- e[TRUE, weight := edge.weight.collapse.fun(.SD$weight, .SD$label), by = c("gwas2network.genename.x", "gwas2network.genename.y")]
+
+  message("Collapsing labels ... ")
+  if(!is.null(e$label)) { 
+    e <- e[
+        TRUE, 
+        label := {lbls <- unique(.SD$label); if(length(lbls) > 3) "> 3 labels" else paste(lbls, collapse = " / ")}, 
+        by = c("gwas2network.genename.x", "gwas2network.genename.y")
+    ]
+  }
   
+  # keep only first of all duplicate edges
+  e <- as.data.frame(e[!duplicated(e), ])
+
   # remove loops
   e <- unique(e[e[, 1] != e[, 2], ])
   # also remove empty string identifier - causes problems
@@ -82,15 +69,14 @@ data.gwas2network <- function(
     e <- e[!(e[, 1] %in% remove | e[, 2] %in% remove), ]
   }
   
-  
   # normally, it is a good idea to remove super-hubs (v > mean(degree)^2)
   # we do this after pruning to allow valid auto-detection with network size (default argument remove.superhubs)
-  if(remove.superhubs) {
+  if(remove.superhubs && prune != "gwasonly") {
     v <- data.frame(name = unique(as.vector(unlist(e[, 1:2]))), stringsAsFactors = FALSE)
     testg <- graph.data.frame(e, directed = FALSE, v)
     superhubs <- V(testg)$name[igraph::degree(testg) > mean(igraph::degree(testg))^2]
     superhubs <- superhubs[!(superhubs %in% genes.gwas)]
-    cat(paste("Removing superhubs:", paste(superhubs, collapse = " ; "), "\n"))
+    message(paste("Removing superhubs:", paste(superhubs, collapse = " ; ")))
     e <- e[!(e[, 1] %in% superhubs), ]
     e <- e[!(e[, 2] %in% superhubs), ]
   }
@@ -98,15 +84,15 @@ data.gwas2network <- function(
   if(nrow(e) < 1)
     stop("Network has no edges after pruning and processing!\n")
   else
-    cat("Network has", nrow(e), "edges\n")
+    message("Network has ", nrow(e), " edges")
   
-  v <- data.frame(name = unique(as.vector(unlist(e[, 1:2]))), stringsAsFactors = FALSE)
-  
+
   ######### vertex weight, label and edge attributes #########
   
-  cat("Setting vertex weights...\n")
+  message("Setting vertex weights...")
   # order genes by p-value and remove duplicated genes (will keep the smallest SNP p-value for each gene)
-  v <- vectorElements(merge(v, gwas.mapped.genes, by.x = "name", by.y = geneid.col, all.x = T))
+  # vertices are all in network and all in gwas
+  v <- vectorElements(merge(data.frame(name = unique(c(genes.gwas, as.vector(unlist(e[, 1:2]))))), gwas.mapped.genes, by.x = "name", by.y = geneid.col, all.x = T))
   v$P <- as.numeric(v$P)
   if(is.null(v$pheno))
     v$pheno <- "defaultPhenotype"
@@ -133,10 +119,8 @@ data.gwas2network <- function(
     simplify = FALSE
   ))
   
-  v[is.na(v$P) | v$P > p.default, "P"] <- p.default
+  v[is.na(v$P), "P"] <- p.default
   v$weight <- -log10(v$P)
-  #  v$weight[v$weight > 20] <- 20
-  
 
   # make genes globally unique by collapsing genes with multiple phenos in additional columns
   # the lowest P will be the representative P (in the P column), further phenotypes are shifted to the additional columns
@@ -184,7 +168,7 @@ data.gwas2network <- function(
   
   ######### edge weights #########
   
-  cat("Setting edge weights...\n")
+  message("Setting edge weights...")
   colnames(e)[1:2] <- c("gwas2network.genename.x", "gwas2network.genename.y")
   colnames(e)[colnames(e) == "weight"] <- "net.weight.temp"
   # assign vertex p-values to each edge
@@ -204,7 +188,7 @@ data.gwas2network <- function(
         paste("Default P =", p.default), 
         paste("gwas.mapped.genes had", nrow(gwas.mapped.genes), "rows"),
         paste("edge weight function for community detection: ", paste(deparse(body(edge.weight.fun)), sep = "\n")),
-        if(remove.superhubs) paste("Superhubs removed:", paste(superhubs, collapse = " ; "))
+        if(remove.superhubs && prune != "gwasonly") paste("Superhubs removed:", paste(superhubs, collapse = " ; "))
         ),
       "gwas2networkParams.txt"
       )

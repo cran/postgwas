@@ -1,6 +1,7 @@
 biomartConfigs <- list(
 hsapiens = list(
   snp = list(
+    host = "www.biomart.org",  
     mart = "snp", 
     dataset = "hsapiens_snp", 
     filter = list(
@@ -11,6 +12,7 @@ hsapiens = list(
       bp = "chrom_start")
   ), 
   gene = list(
+    host = "www.biomart.org",
     mart = "ensembl",
     dataset = "hsapiens_gene_ensembl", 
     filter = list(
@@ -39,10 +41,103 @@ hsapiens = list(
       endbp = "exon_chrom_end",
       gene.startbp = "start_position",
       gene.endbp = "end_position")
+  ), 
+  path = list(
+      host = "www.biomart.org",
+      mart = "REACTOME", 
+      dataset = "pathway", 
+      filter = list(
+          geneid = "referencednasequence_ncbi_id_list"),
+# referencednasequence_ensembl_id_list
+# referencepeptidesequence_uniprot_id_list
+      attr = list(
+          geneid = "referencedatabase_ncbi_gene", 
+# referencedatabase_ensembl
+# referencedatabase_uniprot
+          pathid = "stableidentifier_identifier",
+          pathname = "_displayname")
+  ), 
+  proteincomplex = list(
+      host = "www.biomart.org",
+      mart = "REACTOME", 
+      dataset = "complex", 
+      filter = list(
+          geneid = "referencednasequence_ncbi_id_list"),
+      attr = list(
+          geneid = "referencedatabase_ncbi_gene",
+          complexid = "stableidentifier_identifier",
+          complexname = "_displayname") 
   )
 ), 
+athaliana = list(
+    snp = list(
+        host = "www.biomart.org",
+        mart = "plants_variations_16", 
+        dataset = "athaliana_eg_snp", 
+        filter = list(
+            id = "refsnp"), 
+        attr = list(
+            id = "refsnp_id", 
+            chr = "chr_name", 
+            bp = "chrom_start")
+    ), 
+    gene = list(
+        host = "www.biomart.org",
+        mart = "plants_mart_16",
+        dataset = "athaliana_eg_gene", 
+        filter = list(
+            id = "entrezgene", 
+            name = "external_gene_id",
+            chr = "chromosome_name", 
+            startbp = "start", 
+            endbp = "end"), 
+        attr = list(
+            id = "entrezgene", 
+            name = "external_gene_id", 
+            chr = "chromosome_name", 
+            startbp = "start_position", 
+            endbp = "end_position", 
+            strand = "strand",
+            goterms = "go_name_1006",
+            domains = "superfamily_pf")
+    ),
+    exon = list(
+        filter = list(
+            geneid = "entrezgene", 
+            chr = "chromosome_name"), 
+        attr = list(
+            chr = "chromosome_name",
+            startbp = "exon_chrom_start", 
+            endbp = "exon_chrom_end",
+            gene.startbp = "start_position",
+            gene.endbp = "end_position")
+    ), 
+    path = list(
+        host = "www.biomart.org",
+        mart = "REACTOME", 
+        dataset = "pathway", 
+        filter = list(
+            geneid = "referencednasequence_ncbi_id_list"),
+        attr = list(
+            geneid = "referencedatabase_ncbi_gene", 
+            pathid = "stableidentifier_identifier",
+            pathname = "_displayname")
+    ), 
+    proteincomplex = list(
+        host = "www.biomart.org",
+        mart = "REACTOME", 
+        dataset = "complex", 
+        filter = list(
+            geneid = "referencednasequence_ncbi_id_list"),
+        attr = list(
+            geneid = "referencedatabase_ncbi_gene",
+            complexid = "stableidentifier_identifier",
+            complexname = "_displayname") 
+    )
+),
 scerevisiae = list(
   snp = list(
+    host = "www.biomart.org",
     mart = "snp", 
     dataset = "scerevisiae_snp", 
     filter = list(
@@ -53,6 +148,7 @@ scerevisiae = list(
       bp = "chrom_start")
   ), 
   gene = list(
+    host = "www.biomart.org",
     mart = "ensembl",
     dataset = "scerevisiae_gene_ensembl", 
     filter = list(
@@ -81,6 +177,28 @@ scerevisiae = list(
       endbp = "exon_chrom_end",
       gene.startbp = "start_position",
       gene.endbp = "end_position")
+  ), 
+  path = list(
+      host = "www.biomart.org",
+      mart = "REACTOME", 
+      dataset = "pathway", 
+      filter = list(
+          geneid = "referencednasequence_ncbi_id_list"), 
+      attr = list(
+          geneid = "referencedatabase_ncbi_gene",
+          pathid = "stableidentifier_identifier",
+          pathname = "_displayname")
+  ), 
+  proteincomplex = list(
+      host = "www.biomart.org",
+      mart = "REACTOME", 
+      dataset = "complex", 
+      filter = list(
+          geneid = "referencednasequence_ncbi_id_list"),
+      attr = list(
+          geneid = "referencedatabase_ncbi_gene",
+          complexid = "stableidentifier_identifier",
+          complexname = "_displayname") 
   )
 )
 )
@@ -142,43 +260,10 @@ biomartConfigs$rnorvegicus$gene$name <- "rgd_symbol"
 biomartConfigs$mmusculus$gene$name <- "mgi_symbol"
 
 
-
-prepareBuffer <- function() {
-  if(!("postgwasBuffer" %in% search())) {
-    attach(what = NULL, name = "postgwasBuffer")
-  } else {
-    if(environmentIsLocked(pos.to.env(which(search() == "postgwasBuffer")[1])))
-      stop("Cannot access the environment for buffer data, 'postgwasBuffer' (is locked). Try setting use.buffer = FALSE or open a new R session.\n")
-  }
-  if(!exists("postgwas.buffer.genes", where = "postgwasBuffer"))
-	  assign("postgwas.buffer.genes", NULL, pos = "postgwasBuffer")
-  if(!exists("postgwas.buffer.snps", where = "postgwasBuffer"))
-	  assign("postgwas.buffer.snps", NULL, pos = "postgwasBuffer")
-  if(!exists("postgwas.buffer.exons.regionalplot", where = "postgwasBuffer"))
-	  assign("postgwas.buffer.exons.regionalplot", NULL, pos = "postgwasBuffer")
-  if(!exists("postgwas.buffer.genes.regionalplot", where = "postgwasBuffer"))
-	  assign("postgwas.buffer.genes.regionalplot", NULL, pos = "postgwasBuffer")
-}
-
-# clearPostgwasBuffer <- function() {
-#   cat("Clearing buffer variables if existing...\n")
-#   while("postgwasBuffer" %in% search()) detach("postgwasBuffer")
-#   while(length(getAnywhere("postgwas.buffer.snps")$where) > 0) 
-#     rm("postgwas.buffer.snps", pos = getAnywhere("postgwas.buffer.snps")$where)
-#   while(length(getAnywhere("postgwas.buffer.genes")$where) > 0)
-#     rm("postgwas.buffer.genes", pos = getAnywhere("postgwas.buffer.gene")$where)
-#   while(length(getAnywhere("postgwas.buffer.exons.regionalplot")$where) > 0)
-#     rm("postgwas.buffer.exons.regionalplot", pos = getAnywhere("postgwas.buffer.exons.regionalplot")$where)
-#   while(length(getAnywhere("postgwas.buffer.genes.regionalplot")$where) > 0)
-#     rm("postgwas.buffer.genes.regionalplot", pos = getAnywhere("postgwas.buffer.genes.regionalplot")$where)
-#   while(length(getAnywhere("postgwas.buffer.ld.regionalplot")$where) > 0) 
-#     rm("postgwas.buffer.ld.regionalplot", pos = getAnywhere("postgwas.buffer.ld.regionalplot")$where)
-# }
-
 # deny retrieval and usage of exons when one of the exon config entries is NA
 exons.avail <- function(biomart.config = biomartConfigs$hsapiens, use.buffer = FALSE) {
   # ok when valid buffer exists
-  if(use.buffer && exists("postgwas.buffer.exons.regionalplot") && !is.null(postgwas.buffer.exons.regionalplot)) return(TRUE)
+  if(use.buffer && !is.null(get("exons.regionalplot", envir = postgwasBuffer))) return(TRUE)
   # deny when attributes are not set
   if(is.null(biomart.config$exon) || any(is.na(unlist(biomart.config$exon)))) {
     return(FALSE)
@@ -202,8 +287,8 @@ bm.init.snps <- function(species = NULL) {
     config <- biomartConfigs[[species]]
   }
 
-  cat("Initializing biomart connection (SNPs)...\n")
-  ds <- useMart(biomart = config$snp$mart, dataset = config$snp$dataset)
+  message("Initializing biomart connection (SNPs)...")
+  ds <- useMart(biomart = config$snp$mart, dataset = config$snp$dataset, host = config$snp$host)
 
   # check attribs exist
   if(sum(listAttributes(ds)[, 1] %in% unlist(config$snp$attr)) < length(config$snp$attr)) 
@@ -230,8 +315,8 @@ bm.init.genes <- function(species = NULL) {
     config <- biomartConfigs[[species]]
   }
 
-  cat("Initializing biomart connection (genes)...\n")
-  ds <- useMart(biomart = config$gene$mart, dataset = config$gene$dataset)
+  message("Initializing biomart connection (genes)...")
+  ds <- useMart(biomart = config$gene$mart, dataset = config$gene$dataset, host = config$gene$host)
 
   # check attribs exist
   if(sum(listAttributes(ds)[, 1] %in% unlist(config$gene$attr)) < length(config$gene$attr)) 
@@ -247,6 +332,64 @@ bm.init.genes <- function(species = NULL) {
 }
 
 
+# args: a predefined species as character string, e.g. "hsapiens", or a list with all required biomart field names. Required fields are listed by calling names(biomartConfigs$hsapiens)
+# value: a biomaRt dataset object
+bm.init.path <- function(species = NULL) {
+  
+  if(is.null(species))
+    stop(paste("The following predefined configs are available (use as quoted string in the function call):", paste(names(biomartConfigs), collapse = ", ")))
+  
+  if(is.list(species)) { # user-defined biomart attribute list
+    config <- species
+  } else if(is.null(biomartConfigs[[species]])) {
+    stop(paste("Biomart config not available for selected species. Available predefined configs:", paste(names(biomartConfigs), collapse = ", ")))
+  } else {
+    config <- biomartConfigs[[species]]
+  }
+  
+  message("Initializing biomart connection (pathways)...")
+  ds <- useMart(biomart = config$path$mart, dataset = config$path$dataset, host = config$path$host)
+  
+  # check attribs exist
+  if(sum(listAttributes(ds)[, 1] %in% unlist(config$path$attr)) < length(config$path$attr)) 
+    stop(paste("One of the biomart attributes", paste(config$path$attr, collapse = "; "), "in dataset", config$path$dataset, "does not exist"))
+  # filters
+  if(sum(listFilters(ds)[, 1] %in% unlist(config$path$filter)) < length(config$path$filter)) 
+    stop(paste("One of the biomart filters", paste(config$path$filter, collapse = "; "), "in dataset", config$path$dataset, "does not exist"))
+  
+  return(ds)
+}
+
+
+
+# args: a predefined species as character string, e.g. "hsapiens", or a list with all required biomart field names. Required fields are listed by calling names(biomartConfigs$hsapiens)
+# value: a biomaRt dataset object
+bm.init.proteincomplex <- function(species = NULL) {
+  
+  if(is.null(species))
+    stop(paste("The following predefined configs are available (use as quoted string in the function call):", paste(names(biomartConfigs), collapse = ", ")))
+  
+  if(is.list(species)) { # user-defined biomart attribute list
+    config <- species
+  } else if(is.null(biomartConfigs[[species]])) {
+    stop(paste("Biomart config not available for selected species. Available predefined configs:", paste(names(biomartConfigs), collapse = ", ")))
+  } else {
+    config <- biomartConfigs[[species]]
+  }
+  
+  message("Initializing biomart connection (protein interaction)...")
+  ds <- useMart(biomart = config$proteincomplex$mart, dataset = config$proteincomplex$dataset, host = config$proteincomplex$host)
+  
+  # check attribs exist
+  if(sum(listAttributes(ds)[, 1] %in% unlist(config$proteincomplex$attr)) < length(config$proteincomplex$attr)) 
+    stop(paste("One of the biomart attributes", paste(config$proteincomplex$attr, collapse = "; "), "in dataset", config$proteincomplex$dataset, "does not exist"))
+  # filters
+  if(sum(listFilters(ds)[, 1] %in% unlist(config$proteincomplex$filter)) < length(config$proteincomplex$filter)) 
+    stop(paste("One of the biomart filters", paste(config$proteincomplex$filter, collapse = "; "), "in dataset", config$proteincomplex$dataset, "does not exist"))
+  
+  return(ds)
+}
+
 
 # returns a data frame with the columns 
 # "refsnp_id", "chrname", "chrom_start" 
@@ -258,12 +401,13 @@ bm.snps <- function(
               use.buffer = FALSE,
               remove.dupl = TRUE) {
   attrnames <- c(config$snp$attr$id, config$snp$attr$chr, config$snp$attr$bp)
-  if(use.buffer && exists("postgwas.buffer.snps") && !is.null(postgwas.buffer.snps)) {
-    cat("Using buffer data (SNPs)\n")
-    if(!all(attrnames == colnames(postgwas.buffer.snps)))
-      stop("Error in snp buffer data - clear buffer with rm(postgwas.buffer.snps, inherits = TRUE) or set use.buffer = FALSE")
+  if(use.buffer && !is.null(get("snps", envir = postgwasBuffer))) {
+    message("Using buffer data (SNPs)")
+    buf <- get("snps", envir = postgwasBuffer)
+    if(!all(attrnames == colnames(buf)))
+      stop("Error in snp buffer data - clear buffer (run clearPostgwasBuffer()) or set use.buffer = FALSE")
     else
-      snps <- postgwas.buffer.snps[postgwas.buffer.snps[, config$snp$attr$id] %in% filter.val, ]
+      snps <- buf[buf[, config$snp$attr$id] %in% filter.val, ]
   } else {
     snps <- getBM(
               attributes = attrnames, 
@@ -272,8 +416,7 @@ bm.snps <- function(
               mart = ds
             )
     if(use.buffer) {
-      prepareBuffer()
-      assign("postgwas.buffer.snps", snps, pos = "postgwasBuffer")
+      assign("snps", snps, envir = postgwasBuffer)
     }
   }
   colnames(snps) <- c("refsnp_id", "chrname", "chrom_start")
@@ -298,16 +441,15 @@ bm.genes <- function(
                         ds = bm.init.genes(config), 
                         use.buffer = FALSE) {
   attrnames <- c(config$gene$attr$id, config$gene$attr$name, config$gene$attr$chr, config$gene$attr$startbp, config$gene$attr$endbp)
-  if(use.buffer && exists("postgwas.buffer.genes") && !is.null(postgwas.buffer.genes)) {
-    cat("Using buffer data (genes)\n")
-    genes <- postgwas.buffer.genes
+  if(use.buffer && !is.null(get("genes", envir = postgwasBuffer))) {
+    message("Using buffer data (genes)")
+    genes <- get("genes", envir = postgwasBuffer)
     if(!all(attrnames %in% colnames(genes)))
-      stop("Error in genes buffer data - clear buffer with rm(postgwas.buffer.genes, inherits = TRUE) or set use.buffer = FALSE")
+      stop("Error in genes buffer data - clear buffer (run clearPostgwasBuffer()) or set use.buffer = FALSE")
   } else {
     genes <- getBM(attributes = attrnames, mart = ds)
     if(use.buffer) {
-      prepareBuffer()
-      assign("postgwas.buffer.genes", genes, pos = "postgwasBuffer")
+      assign("genes", genes, envir = postgwasBuffer)
     }
   }
   names(genes) <- c("geneid", "genename", "chrname", "start", "end")
@@ -329,11 +471,11 @@ bm.genes.regionalplot <- function(
                             bp.end, 
                             use.buffer = FALSE) {
   attrnames <- c(config$gene$attr$id, config$gene$attr$name, config$gene$attr$chr, config$gene$attr$startbp, config$gene$attr$endbp, config$gene$attr$strand)
-  if(use.buffer && exists("postgwas.buffer.genes.regionalplot") && !is.null(postgwas.buffer.genes.regionalplot)) {
-    cat("Using buffer data (genes)\n")
-    genes <- postgwas.buffer.genes.regionalplot
+  if(use.buffer && !is.null(get("genes.regionalplot", envir = postgwasBuffer))) {
+    message("Using buffer data (genes)")
+    genes <- get("genes.regionalplot", envir = postgwasBuffer)
     if(!all(attrnames %in% colnames(genes)))
-      stop("Error in genes buffer data - clear buffer with rm(postgwas.buffer.genes.regionalplot, inherits = TRUE) or set use.buffer = FALSE")
+      stop("Error in genes buffer data - clear buffer (run clearPostgwasBuffer()) or set use.buffer = FALSE")
   } else {
     genes <- unique(list2df(lapply(
       1:length(chr), 
@@ -346,8 +488,7 @@ bm.genes.regionalplot <- function(
         )
     )))
     if(use.buffer) {
-      prepareBuffer()
-      assign("postgwas.buffer.genes.regionalplot", genes, pos = "postgwasBuffer")
+      assign("genes.regionalplot", genes, envir = postgwasBuffer)
     }
   }
   names(genes) <- c("id", "name", "chromo", "start", "end", "strand")
@@ -367,13 +508,11 @@ bm.exons <- function(
                    use.buffer = FALSE) {
   names(filter.val) <- c(config$exon$filter$geneid, config$exon$filter$chr)
   attrnames <- c(config$exon$attr$chr, config$exon$attr$startbp, config$exon$attr$endbp, config$exon$attr$gene.startbp, config$exon$attr$gene.endbp)
-  if(use.buffer && exists("postgwas.buffer.exons.regionalplot") && !is.null(postgwas.buffer.exons.regionalplot)) {
-    cat("Using buffer data (exons)\n")
-    if(!all(attrnames == colnames(postgwas.buffer.exons.regionalplot))) {
-      stop("Error in exon buffer data - clear buffer with rm(postgwas.buffer.exons.regionalplot, inherits = TRUE) or set use.buffer = FALSE")
-    } else {
-      exons <- postgwas.buffer.exons.regionalplot
-    }
+  if(use.buffer && !is.null(get("exons.regionalplot", envir = postgwasBuffer))) {
+    message("Using buffer data (exons)")
+    exons <- get("exons.regionalplot", envir = postgwasBuffer)
+    if(!all(attrnames == colnames(exons)))
+      stop("Error in exon buffer data - clear buffer (run clearPostgwasBuffer()) or set use.buffer = FALSE")
   } else {
     exons <- getBM(
       attributes = attrnames, 
@@ -382,8 +521,7 @@ bm.exons <- function(
       mart = ds
     )
     if(use.buffer) {
-      prepareBuffer()
-      assign("postgwas.buffer.exons.regionalplot", exons, pos = "postgwasBuffer")
+      assign("exons.regionalplot", exons, envir = postgwasBuffer)
     }
   }
   names(exons) <- c("chromo", "start", "end", "genestart", "geneend")
@@ -394,19 +532,32 @@ bm.genes.goterms <- function(
                        config = biomartConfigs$hsapiens, 
                        ds = bm.init.genes(config),
                        filter.name = biomartConfigs$hsapiens$gene$filter$name, 
-                       filter.val
+                       filter.val, 
+                       use.buffer = FALSE
                      ) {
   
   if(is.null(config$gene$attr$goterms)) 
     stop("Biomart configuration is incomplete - the 'goterms' element has to be specified for the current operation\n")
   
   attrnames <- c(config$gene$attr$id, config$gene$attr$name, config$gene$attr$goterms)
-  goterms <- getBM( 
-               attributes = attrnames, 
-               filters = filter.name,
-               values = filter.val,
-               mart = ds 
-             )
+  
+  if(use.buffer && !is.null(get("goterms", envir = postgwasBuffer))) {
+    message("Using buffer data (GO terms)")
+    goterms <- get("goterms", envir = postgwasBuffer)
+    if(!all(attrnames == colnames(goterms)))
+      stop("Error in GO term buffer data - clear buffer (run clearPostgwasBuffer()) or set use.buffer = FALSE")
+  } else {
+    goterms <- getBM( 
+        attributes = attrnames, 
+        filters = filter.name,
+        values = filter.val,
+        mart = ds 
+    )
+    if(use.buffer) {
+      assign("goterms", goterms, envir = postgwasBuffer)
+    }
+  }
+  
   colnames(goterms) <- c("geneid", "genename", "goterm.name")
   return(goterms)
 }
@@ -444,17 +595,18 @@ bm.id2name <- function(
   if(is.null(filter.ids))
     stop("Argument filter.ids has to be specified.\n")
   
-  if(use.buffer && exists("postgwas.buffer.genes") && !is.null(postgwas.buffer.genes)) {
-    if(!all(c(config$gene$attr$id, config$gene$attr$name) %in% colnames(postgwas.buffer.genes)))
-      stop("Error in genes buffer data - clear buffer with rm(postgwas.buffer.genes, inherits = TRUE) or set use.buffer = FALSE")
-    cat("Using buffer data (genes)\n")
+  if(use.buffer && !is.null(get("genes", envir = postgwasBuffer))) {
+    message("Using buffer data (genes)")
+    buf <- get("genes", envir = postgwasBuffer)
+    if(!all(c(config$gene$attr$id, config$gene$attr$name) %in% colnames(buf)))
+      stop("Error in genes buffer data - clear buffer (run clearPostgwasBuffer()) or set use.buffer = FALSE")
   } else {
     use.buffer <- FALSE
   }
   
   if(is.data.frame(filter.ids) & config$gene$attr$id %in% colnames(filter.ids)) {
     if(use.buffer) {
-      map <- merge(filter.ids, postgwas.buffer.genes, all.x = TRUE)
+      map <- merge(filter.ids, buf, all.x = TRUE)
       map <- map[, c(colnames(filter.ids), config$gene$attr$name)]
     } else {
       map <- getBM(
@@ -467,8 +619,8 @@ bm.id2name <- function(
     }
   } else {
     if(use.buffer) {
-      map <- postgwas.buffer.genes[
-               postgwas.buffer.genes[, config$gene$attr$id] %in% as.vector(filter.ids), 
+      map <- buf[
+               buf[, config$gene$attr$id] %in% as.vector(filter.ids), 
                c(config$gene$attr$id, config$gene$attr$name)
              ]
     } else {
@@ -496,17 +648,18 @@ bm.name2id <- function(
   if(is.null(filter.names))
     stop("Argument filter.names has to be specified.\n")
   
-  if(use.buffer && exists("postgwas.buffer.genes") && !is.null(postgwas.buffer.genes)) {
-    if(!all(c(config$gene$attr$id, config$gene$attr$name) %in% colnames(postgwas.buffer.genes)))
-      stop("Error in genes buffer data - clear buffer with rm(postgwas.buffer.genes, inherits = TRUE) or set use.buffer = FALSE")
-    cat("Using buffer data (genes)\n")
+  if(use.buffer && !is.null(get("genes", envir = postgwasBuffer))) {
+    message("Using buffer data (genes)")
+    buf <- get("genes", envir = postgwasBuffer)
+    if(!all(c(config$gene$attr$id, config$gene$attr$name) %in% colnames(buf)))
+      stop("Error in genes buffer data - clear buffer (run clearPostgwasBuffer()) or set use.buffer = FALSE")
   } else {
     use.buffer <- FALSE
   }
   
   if(is.data.frame(filter.names) & config$gene$attr$name %in% colnames(filter.names)) {
     if(use.buffer) {
-      map <- merge(filter.names, postgwas.buffer.genes, all.x = TRUE)
+      map <- merge(filter.names, buf, all.x = TRUE)
       map <- map[, c(colnames(filter.names), config$gene$attr$id)]
     } else {
       map <- getBM(
@@ -519,9 +672,9 @@ bm.name2id <- function(
     }
   } else {
     if(use.buffer) {
-      map <- postgwas.buffer.genes[
-        postgwas.buffer.genes[, config$gene$attr$name] %in% as.vector(filter.names), 
-        c(config$gene$attr$id, config$gene$attr$name)
+      map <- buf[
+          buf[, config$gene$attr$name] %in% as.vector(filter.names), 
+          c(config$gene$attr$id, config$gene$attr$name)
         ]
     } else {
       map <- getBM(
@@ -540,25 +693,34 @@ bm.name2id <- function(
 
 bm.remapSnps <- function(
                   file, 
+                  snp.col = "SNP", 
                   config = biomartConfigs$hsapiens, 
                   ds = bm.init.snps(config), 
                   use.buffer = FALSE, 
                   toFile = paste(file, ".remapped", sep = "")
                 ) {
   
-  f <- na.omit(read.table(file, header=TRUE))
-  if(!("SNP" %in% colnames(f)))
-    stop("Source file does not contain a column 'SNP' or is not readable by the read.table function.\n")
+  if(is.numeric(snp.col)) {
+    f <- na.omit(read.table(file, header=FALSE))
+    colnames(f)[snp.col] <- "SNP" 
+    snp.col <- "SNP"
+  } else {
+    f <- na.omit(read.table(file, header=TRUE))
+  }
   
-  cat("Retrieving SNP positions from biomart, this can take a while.\n")
+  if(!(snp.col %in% colnames(f)))
+    stop(paste("Source file does not contain a column '", snp.col, "' or is not readable by the read.table function.\n"))
+  
+  message("Retrieving SNP positions from biomart, this can take a while.")
   snps.bm <- bm.snps(
-    filter.val = f$SNP, 
+    filter.val = f[, snp.col], 
     config = config, 
     use.buffer = use.buffer
   )
   
   colnames(snps.bm)[colnames(snps.bm) %in% c("chrname", "chrom_start")] <- c("CHR", "BP")
-  f.new <- merge(f, snps.bm, by.x = "SNP", by.y = "refsnp_id", suffixes = c(".original", ""))
+  f.new <- merge(f, snps.bm, by.x = snp.col, by.y = "refsnp_id", suffixes = c(".original", ""), all.x = TRUE)
+  f.new <- f.new[match(f[, snp.col], f.new[, snp.col]), ] # restore original order
   
   if(!is.null(toFile) && is.character(toFile) && length(toFile) == 1)
     write.table(f.new, toFile, row.names = F, col.names = T)

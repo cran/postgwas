@@ -2,7 +2,7 @@ data.regionalplot.regions <- function(snps, p.all, window.size) {
 
   # center regions around query snp
   # we have assured that query snp has position from pval file
-  cat("Assembling regions...\n")
+  message("Assembling regions...")
   regions <- sapply(
     as.vector(snps$SNP), 
     function(snp) {

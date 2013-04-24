@@ -1,34 +1,37 @@
 regionalplot <- function(
-              snps, 
-              gwas.resultfiles, 
-              window.size = 1000000, 
-              biomart.config = biomartConfigs$hsapiens,
-              use.buffer = FALSE,
-              plot.genes = TRUE, 
-              draw.snpname = "auto",
-              ld.options = list(
-                             pop.id = 2, 
-                             max.snps.per.window = 200, 
-                             rsquare.min = 0.2, 
-                             show.rsquare.text = FALSE),
-              var.options = NULL,
-              out.format = list(
-                             file = "pdf", 
-                             panels.per.page = "auto",
-                             global.scale = "auto", 
-                             paper.height = 11.7, 
-                             paper.width = 8.3),
-              max.logp = FALSE, 
-              cores = 1,
-              ytracks = ytracks.regionalplot, 
-              panel.add = function(...) return(NULL)
-          ) {
+    snps, 
+    gwas.datasets, 
+    window.size = 1000000, 
+    biomart.config = biomartConfigs$hsapiens,
+    use.buffer = FALSE,
+    plot.genes = TRUE, 
+    draw.snpname = "auto",
+    ld.options = list(
+        gts.source = 2, 
+        max.snps.per.window = 200, 
+        rsquare.min = 0.2, 
+        show.rsquare.text = FALSE),
+    var.options = NULL,
+    out.format = list(
+        file = "pdf", 
+        panels.per.page = "auto",
+        global.scale = "auto", 
+        paper.height = 11.7, 
+        paper.width = 8.3),
+    max.logp = FALSE, 
+    cores = 1,
+    ytracks = ytracks.regionalplot, 
+    panel.add = function(...) return(NULL)
+) {
 
   # avoid unknown binding warnings in codecheck tool
   pheno <- "NULL"
   
-  if(missing(gwas.resultfiles) || is.null(gwas.resultfiles)) 
-   stop("Function parameter 'gwas.resultfiles' needs to be specified")
+  if(missing(gwas.datasets) || is.null(gwas.datasets)) 
+   stop("Function parameter 'gwas.datasets' needs to be specified")
+ 
+  if(is.null(biomart.config) || !is.list(biomart.config))
+    stop("Argument 'biomart.config' has to be a list")
   
   if(missing(snps) || is.null(snps)) 
    stop("Function parameter 'snps' needs to be specified")
@@ -47,8 +50,8 @@ regionalplot <- function(
     if(is.null(ld.options$rsquare.min)) ld.options$rsquare.min <- 0.2
     if(is.null(ld.options$max.snps.per.window)) ld.options$max.snps.per.window <- 200
     if(is.null(ld.options$show.rsquare.text)) ld.options$show.rsquare.text <- FALSE
-    if(is.null(ld.options$pop.id) & (is.null(ld.options$ped) | is.null(ld.options$map))) 
-      stop("Function parameter ld.options needs specification of either local genotype files (components 'ped' and 'map') or hapmap population identifier 'pop.id'")
+    if(is.null(ld.options$gts.source)) 
+      stop("Function parameter ld.options lacks an elements 'gts.source' defining the source for genotype retrieval.")
   }
   
   if(is.null(var.options)) {
@@ -124,7 +127,7 @@ regionalplot <- function(
   
   ##################### READ PVAL DATA AND EXTRACT REGIONS AROUND SNPS #####################
   
-  p.all <- readPvalFiles(gwas.resultfiles, assert.positions.match = TRUE)
+  p.all <- readGWASdatasets(gwas.datasets, assert.positions.match = TRUE)
   
   snps  <- data.regionalplot.snps(snps, p.all)
   if(nrow(snps) > 1000)
@@ -188,16 +191,15 @@ regionalplot <- function(
   ##################### GET GENOTYPES #####################
 
   if(plot.ld) {
-    if(use.buffer && exists("postgwas.buffer.ld.regionalplot") && !is.null(postgwas.buffer.ld.regionalplot)) {
-      cat("Using buffer data (ld)\n")
-      ld.regions <- postgwas.buffer.ld.regionalplot
+    if(use.buffer && !is.null(get("ld.regionalplot", envir = postgwasBuffer))) {
+      message("Using buffer data (ld)")
+      ld.regions <- get("ld.regionalplot", envir = postgwasBuffer)
       if(!is.list(ld.regions) || !all(names(ld.regions) %in% snps$SNP))
-        stop("Error in ld buffer data - clear buffer with rm(postgwas.buffer.ld.regionalplot, inherits = TRUE) or set use.buffer = FALSE")
+        stop("Error in ld buffer data - clear buffer (run clearPostgwasBuffer()) or set use.buffer = FALSE")
     } else {
       ld.regions <- data.regionalplot.ld(regions.df, ld.options, cores)
       if(use.buffer) {
-        prepareBuffer()
-        assign("postgwas.buffer.ld.regionalplot", ld.regions, pos = "postgwasBuffer")
+        assign("ld.regionalplot", ld.regions, envir = postgwasBuffer)
       }
     }
   }
@@ -253,7 +255,9 @@ regionalplot <- function(
     if(plot.genes) "\nusing biomart positions", 
     if(plot.ld) 
       paste("\nLD options: ", 
-            if(is.null(ld.options$pop.id)) paste("ped = ", ld.options$ped) else paste("pop.id =", ld.options$pop.id),
+            "genotypes =", if(class(ld.options$gts.source) == "snp.data") "custom"
+               else if(is.numeric(ld.options$gts.source)) paste("HapMap pop.", ld.options$gts.source)
+               else ld.options$gts.source,
             "// maxsnps =", ld.options$max.snps.per.window,
             "// rsquare >", ld.options$rsquare.min), 
      if(plot.variants) 
@@ -411,10 +415,10 @@ regionalplot <- function(
     key = {
       # custom key because we want small symbols and an extra legend when variants are used
       mykey <- simpleKey(levels(as.factor(regions.df$pheno)), cex = 0.6 * global.scale) 
-      if(plot.variants && !is.null(var.options$vcf.info.color)) {
-        mykey$text$lab <- c(mykey$text$lab, paste("variant:", var.options$vcf.info.color))
-        mykey$points$col <- c(mykey$points$col, rainbow(length(var.options$vcf.info.color)))
-        mykey$points$pch <- c(mykey$points$pch, rep(2,length(var.options$vcf.info.color)))
+      if(plot.variants && !is.null(var.options$vcf.info.colorize)) {
+        mykey$text$lab <- c(mykey$text$lab, paste("variant:", var.options$vcf.info.colorize))
+        mykey$points$col <- c(mykey$points$col, rainbow(length(var.options$vcf.info.colorize)))
+        mykey$points$pch <- c(mykey$points$pch, rep(2,length(var.options$vcf.info.colorize)))
       }
       mykey$points$cex <- mykey$points$cex * 0.7 * global.scale
       mykey},
@@ -432,7 +436,7 @@ regionalplot <- function(
   
   
   if(!is.null(out.format$file)) {
-    cat(paste("Writing plot to file", nextFilename("regionalplot", out.format$file), "\n"))
+    message(paste("Writing plot to file", nextFilename("regionalplot", out.format$file), ""))
     if( out.format$file == "bmp" ) {
       trellis.device(
         bmp, 

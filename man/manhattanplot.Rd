@@ -9,16 +9,18 @@ Produces a manhattan plot with highlighting and annotation features.
 
 \usage{
 manhattanplot(
-  gwas.resultfile, 
+  gwas.dataset, 
   highlight.logp = c(6, 7.3), 
-  highlight.win = 50000, 
+  highlight.win = 125000, 
   highlight.color = NULL, 
-  highlight.text = "genes",
-  highlight.cex = 1,
-  highlight.fontface = "bold", 
+  highlight.text = c("SNP", "genes"),
+  highlight.cex = c(0.7, 1),
+  highlight.fontface = c("italic", "bold"), 
+  highlight.lines = FALSE, 
+  ticks.y = FALSE,
   max.y = NULL,
   reduce.dataset = TRUE, 
-  plot.title = gwas.resultfile, 
+  plot.title = NULL, 
   biomart.config = biomartConfigs$hsapiens, 
   use.buffer = FALSE, 
   toFile = nextFilename("manhattanplot", "pdf")
@@ -26,15 +28,17 @@ manhattanplot(
 }
 
 \arguments{
-  \item{gwas.resultfile}{character(1). Contains the path/filename of a GWAS resultfile. The file must contain the columns "CHR", "BP", "SNP", "P" and an approriate header line and be readable by the \code{link{read.table}} function.}
+  \item{gwas.dataset}{A GWAS dataset. Several formats are accepted. Reads GenABEL, GEMMA, FAsTLMM or PLINK formats, or a default format containing columns 'SNP' and 'P' and optionally 'CHR' and 'BP'. The dataset can be passed as a filename (character argument) or a data frame containing the appropriate columns. For GenABEL, can also be a scan-gwaa object. Then, the P1df slot is used to provide p-values. For a PLINK file, only a single analysis model should be contained (e.g. one of DOM, REC, GENO).}
   \item{highlight.logp}{integer. The value defines a threshold for highlighting SNPs with -log(p) < highlight.logp. See also the arguments below. Can be a vector of multiple thresholds. }
   \item{highlight.win}{integer. For a SNP above the highlighting threshold, all SNPS lying within highlight.win basepair distance are also highlighted (applied to both sides). This argument is further used to determine a representative (i.e. lead) SNP of multiple proximate SNPs that all hit the highlighting threshold. The gene annotation is only plotted at the lead SNP of a block. The length of this argument should match the length of highlight.logp or is recycled if necessary.}
   \item{highlight.color}{character. Can be set to a user-defined color as listed in colors(). The length of this argument should match the length of highlight.logp or is recycled if necessary. }
-  \item{highlight.text}{character(1). When 'SNP', draws SNP identifiers above the peak SNP of each highlighted locus. When "genes" runs snp2gene to annotate the closest genes in each direction. When NULL, draws no annotation at all.}
+  \item{highlight.text}{character. When 'SNP', draws SNP identifiers above the peak SNP of each highlighted locus. When "genes" runs snp2gene to annotate the closest genes in each direction (SNPs without gene annotation get their SNP ID plotted instead). When "none", draws no text annotation. The length of this argument should match the length of highlight.logp or is recycled if necessary.}
   \item{highlight.cex}{numeric. This is applied as cex argument (see \code{\link{par}}) to the gene labels, and in similar form to the plotted point symbol size of highlighted SNPs. The length of this argument should match the length of highlight.logp or is recycled if necessary.}
   \item{highlight.fontface}{character. Determines the fontface of the annotation text (can be "plain", "bold", "italic", "oblique", and "bold.italic"). The length of this argument should match the length of highlight.logp or is recycled if necessary. See details in the corresponding grid parameter documentation \code{\link{gpar}}. }
-  \item{max.y}{numeric. The maximum -log(p) value to display. This can be used when very small p's occur (remaining data is then displayed very compressed.)}
-  \item{reduce.dataset}{boolean(1). When TRUE, randomly removes SNPs to reduce data load, where the probability for a SNP to be removed is the squared p-value. SNPs with p < 1e-04 are untouched.}
+  \item{highlight.lines}{boolean. Determines whether a horizontal line is drawn at the \code{highlight.logp} thresholds. The length of this argument should match the length of highlight.logp or is recycled if necessary. }
+  \item{ticks.y}{logical. When true, adds a graphical representation of the y axis to the plot (vertical line with tick marks).}
+  \item{max.y}{numeric. The maximum -log(p) value to display. This can be useful when very small p's occur, cutting the data at a certain logp, or to extend the y axis to a larger range. When this argument is NULL, the y axis is scaled to the maximum / minimum p value from the gwas datafile.)}
+  \item{reduce.dataset}{boolean(1). When TRUE, randomly removes SNPs to reduce data load, with increasing probablilty to be removed for low p-values. The top 0.2 percent of p-values remain untouched. Can also be a positive integer to do multiple removal cycles. }
   \item{plot.title}{character(1). Title text of the plot.}
   \item{biomart.config}{list. A biomart config list as described in \code{\link{biomartConfigs}}. This is only cosidered when highlight.text = "genes" and directly passed to the snp2gene function for gene annotations.}
   \item{use.buffer}{boolean(1). As in \code{\link{snp2gene}}.}
@@ -57,17 +61,19 @@ If a single locus gets genes annotated at several SNPs belonging to the same loc
 \examples{
 
 \dontshow{
-# load snps annotation into biomart buffer (runs offline)
-postgwas.buffer.snps <- read.table(system.file("extdata", "postgwas.buffer.snps", package = "postgwas"), header = TRUE)
-postgwas.buffer.genes <- read.table(system.file("extdata", "postgwas.buffer.genes", package = "postgwas"), header = TRUE)
+## offline usage: load and set buffer data for gene annotation
+setPostgwasBuffer(
+  snps = read.table(system.file("extdata", "postgwas.buffer.snps", package = "postgwas"), header = TRUE), 
+  genes = read.table(system.file("extdata", "postgwas.buffer.genes", package = "postgwas"), header = TRUE)  
+)
 }
   
   # our file to plot
-  gwas.resultfile = system.file("extdata", "example.gwas1", package = "postgwas")
+  gwas.dataset = system.file("extdata", "example.gwas1", package = "postgwas")
   
   # basic plot
   manhattanplot(
-    gwas.resultfile, 
+    gwas.dataset, 
     highlight.logp = c(3, 4), 
     use.buffer = TRUE, 
     plot.title = "truncated genomewide example dataset",
@@ -78,16 +84,17 @@ postgwas.buffer.genes <- read.table(system.file("extdata", "postgwas.buffer.gene
 
 \dontrun{
   # for yeast
-  # we use our truncated synthetical dataset..
-  gwas.resultfile = system.file("extdata", "example.gwas3", package = "postgwas")
+  # we use a truncated synthetical dataset..
+  gwas.dataset = system.file("extdata", "example.gwas3.xz", package = "postgwas")
   manhattanplot(
-    gwas.resultfile, 
+    gwas.dataset, 
     highlight.win = 500, 
     highlight.logp = c(3, 4), 
-    highlight.cex = 1.3, 
     biomart.config = biomartConfigs$scerevisiae, 
-    use.buffer = TRUE
+    use.buffer = FALSE
   )
+  # the gene annotation overlaps a bit, either decrease the highlight.cex argument or 
+  # change the plot width, as outlined in the next example  
 }
 
 
@@ -106,7 +113,7 @@ postgwas.buffer.genes <- read.table(system.file("extdata", "postgwas.buffer.gene
 }
   # tiff("manhattanplot.tiff", width = 20, height = 8, units = "cm", res = 2000, compression = "lzw", pointsize = 10)
   manhattanplot(
-    gwas.resultfile, 
+    gwas.dataset, 
     highlight.logp = c(3, 4), 
     highlight.win = 130000,
     highlight.color = c("darkgreen", "red"),
@@ -117,6 +124,12 @@ postgwas.buffer.genes <- read.table(system.file("extdata", "postgwas.buffer.gene
     toFile = NULL
   )
   # dev.off()
+  
+\dontshow{
+  # cleanup
+  clearPostgwasBuffer()
+  rm(gwas.dataset)
+}
 }
 
 
