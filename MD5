@@ -1,4 +1,4 @@
-7c3c38eec72a51fe82c749ab8a154d53 *DESCRIPTION
+ef1f1169ff3c1728c9389808d2c99a24 *DESCRIPTION
 8a9b9fb9ed2b444c11342664cd78c3a1 *NAMESPACE
 d81bd0b2d88a9d7cac71fade204622dd *R/LDparallel.R
 0cf7c79d2a0c386a1972014d4da81066 *R/biomartWrapper.R
@@ -44,7 +44,7 @@ a45f39579719a74505886f0d929b310a *inst/doc/bufferHS.RData
 45e9952fbf1d7a755cd5179affecb9b0 *inst/doc/bufferMM.RData
 1427ba05dbbbe9efe7c48e7e792bea6b *inst/doc/faq.pdf
 aa835f176dafe065fba58de8c73a935a *inst/doc/heightTrunc.txt.remapped.xz
-2787f5094b753ac0f148874898d7edb1 *inst/doc/heightbmi.pdf
+3505ea398ed574a7434ecaef04cbc6c6 *inst/doc/heightbmi.pdf
 190503784a36bcd2d3d0d8c78e01cb9b *inst/doc/heightbmiComm1.pdf
 9191a058778103b80e412868f97f967e *inst/doc/heightbmiComm2.pdf
 9204dcaf0c8a97ba99684e664e06a9e2 *inst/doc/heightbmiComm3.pdf
@@ -82,7 +82,7 @@ d3866f32c30a6298a22fa2066e02d7cf *inst/extdata/example.vcf.gz.tbi
 63c10da46eb286518e75363e01a508d8 *inst/extdata/postgwas.buffer.ld.regionalplot
 ab828be9fcafee1118bb209b040b5710 *inst/extdata/postgwas.buffer.snps
 905b637aa297da0215021c62a755f78d *inst/extdata/postgwas.interaction.download
-ea9a5055bb854ea74340f1c4c266ba04 *man/LDparallel.Rd
+d70dfdc14a9931a8b11a977e5eaade7c *man/LDparallel.Rd
 5125056a36512096b33dd8370d159df6 *man/biomartConfigs.Rd
 0491fa33f0b7f75cfbdaa578e2e3651d *man/biomartWrapper.Rd
 61eb02e6b00e44657eb709ce56d41a84 *man/bm.remapSnps.Rd

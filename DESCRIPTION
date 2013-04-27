@@ -1,6 +1,6 @@
 Package: postgwas
-Version: 1.10
-Date: 2013-04-24
+Version: 1.11
+Date: 2013-04-27
 Title: GWAS Post-Processing Utilities
 Author: Milan Hiersche <mihi@uni-muenster.de>
 Maintainer: Milan Hiersche <mihi@uni-muenster.de>
@@ -18,7 +18,7 @@ License: GPL (>= 2)
 URL: http://www.r-project.org
 BugReports: mihi@uni-muenster.de
 BuildVignettes: FALSE
-Packaged: 2013-04-26 13:34:38 UTC; milan
+Packaged: 2013-04-27 15:29:30 UTC; milan
 NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2013-04-26 17:22:10
+Date/Publication: 2013-04-27 20:39:12

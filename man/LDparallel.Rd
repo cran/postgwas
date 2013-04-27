@@ -43,10 +43,10 @@ genotypes <- getGenotypes(
                gts.source = system.file("extdata", "example.gwaa", package = "postgwas"), 
                return.genotypes = TRUE 
              )
-if(any(installed.packages()[, "Package"] == "parallel")) {
+if(any(installed.packages()[, "Package"] == "parallel") && Sys.info()[["sysname"]] == "Linux") {
   LDparallel(genotypes)
 } else {
-  cat("Package 'parallel' not installed, cannot run example.\n")
+  cat("Package 'parallel' not installed or not supported by operating system, cannot run example.\n")
 }
 \dontshow{
   # cleanup
